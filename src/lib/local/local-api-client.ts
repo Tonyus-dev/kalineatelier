@@ -230,3 +230,29 @@ export function putLocalSetting(key: string, value: unknown) {
 export function getLocalIdentity() {
   return localApiRequest<{ summary: string; sources: string[] }>("/identity");
 }
+
+export type LocalModelStatus = {
+  ok: boolean;
+  provider: "mock" | "openrouter" | "ollama";
+  configured: boolean;
+  fallbackToMock: boolean;
+  message: string;
+};
+
+export function getLocalModelStatus() {
+  return localApiRequest<LocalModelStatus>("/model/status");
+}
+
+export type LocalBridgeStatus = {
+  ok: boolean;
+  mode: string;
+  deviceIdConfigured: boolean;
+  cloudBridgeConfigured: boolean;
+  bridgePublicKeyConfigured: boolean;
+  lastCloudCheckAt: string | null;
+  message: string;
+};
+
+export function getLocalBridgeStatus() {
+  return localApiRequest<LocalBridgeStatus>("/bridge/status");
+}

@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { listLocalSettings, putLocalSetting, getLocalIdentity } from "@/lib/local/local-api-client";
+import {
+  listLocalSettings,
+  putLocalSetting,
+  getLocalIdentity,
+  checkLocalHealth,
+  getLocalModelStatus,
+  getLocalBridgeStatus,
+} from "@/lib/local/local-api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +30,25 @@ export function AtelierConfiguracoes({ disabled }: { disabled: boolean }) {
     enabled: !disabled,
   });
 
+  const healthQuery = useQuery({
+    queryKey: ["atelier", "health"],
+    queryFn: () => checkLocalHealth(),
+    enabled: !disabled,
+    refetchInterval: 15000,
+  });
+
+  const modelStatusQuery = useQuery({
+    queryKey: ["atelier", "model-status"],
+    queryFn: () => getLocalModelStatus(),
+    enabled: !disabled,
+  });
+
+  const bridgeStatusQuery = useQuery({
+    queryKey: ["atelier", "bridge-status"],
+    queryFn: () => getLocalBridgeStatus(),
+    enabled: !disabled,
+  });
+
   const put = useMutation({
     mutationFn: () => putLocalSetting(key, value),
     onSuccess: () => {
@@ -34,8 +60,46 @@ export function AtelierConfiguracoes({ disabled }: { disabled: boolean }) {
 
   const settings = settingsQuery.data ?? [];
 
+  const health = healthQuery.data;
+  const apiOk = health?.ok === true;
+  const sqliteOk = apiOk; // /health falha por completo se o SQLite estiver com erro
+  const model = modelStatusQuery.data;
+  const bridge = bridgeStatusQuery.data;
+
   return (
     <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Status — Conexões e Modelos</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">API local</span>
+            <span>{healthQuery.isLoading ? "verificando…" : apiOk ? "ativa" : "inativa"}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Banco local (SQLite)</span>
+            <span>{healthQuery.isLoading ? "verificando…" : sqliteOk ? "pronto" : "erro"}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">IA</span>
+            <span>
+              {model ? `${model.provider}${model.configured ? "" : " (não configurado)"}` : "—"}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Ponte com a nuvem</span>
+            <span>{bridge ? (bridge.mode === "disabled" ? "desativada" : bridge.mode) : "—"}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Túnel</span>
+            <span>não implementado</span>
+          </div>
+          {model?.message && <p className="text-xs text-muted-foreground pt-1">{model.message}</p>}
+          {bridge?.message && <p className="text-xs text-muted-foreground">{bridge.message}</p>}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">Identidade (somente leitura)</CardTitle>
