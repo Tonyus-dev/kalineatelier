@@ -8,11 +8,37 @@
 
 import Fastify from "fastify";
 import { HOST, PORT } from "./config.js";
+import { getDb, closeDb } from "./db/connection.js";
+import { runMigrations } from "./db/migrate.js";
 import { registerHealthRoute } from "./routes/health.js";
+import { registerSettingsRoutes } from "./routes/settings.js";
+import { registerIdentityRoutes } from "./routes/identity.js";
+import { registerThreadsRoutes } from "./routes/threads.js";
+import { registerMessagesRoutes } from "./routes/messages.js";
+import { registerChatRoutes } from "./routes/chat.js";
+import { registerRegistroRoutes } from "./routes/registro.js";
+import { registerMemoriesRoutes } from "./routes/memories.js";
+import { registerSedimentsRoutes } from "./routes/sediments.js";
+import { registerDecisoesRoutes } from "./routes/decisoes.js";
+import { registerInboxRoutes } from "./routes/inbox.js";
+import { registerReportsRoutes } from "./routes/reports.js";
+
+runMigrations(getDb());
 
 const app = Fastify({ logger: true });
 
 await registerHealthRoute(app);
+await registerSettingsRoutes(app);
+await registerIdentityRoutes(app);
+await registerThreadsRoutes(app);
+await registerMessagesRoutes(app);
+await registerChatRoutes(app);
+await registerRegistroRoutes(app);
+await registerMemoriesRoutes(app);
+await registerSedimentsRoutes(app);
+await registerDecisoesRoutes(app);
+await registerInboxRoutes(app);
+await registerReportsRoutes(app);
 
 async function shutdown(signal: string): Promise<void> {
   app.log.info(`Recebido ${signal}. Encerrando a Kaline Local...`);
