@@ -36,7 +36,7 @@ if [ ! -d "node_modules" ]; then
 fi
 
 echo ""
-echo "== Iniciando local-server em http://127.0.0.1:4517 (logs em local-server.log) =="
+echo "== Iniciando local-server em http://127.0.0.1:64113 (logs em local-server.log) =="
 (cd local-server && npm run dev > ../local-server.log 2>&1 &)
 LOCAL_SERVER_PID=$!
 

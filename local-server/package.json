@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Servidor local-first da Kaline Offline. Isolado da raiz (bun). Escuta apenas em 127.0.0.1:4517.",
+  "description": "Servidor local-first da Kaline Offline. Isolado da raiz (bun). Escuta apenas em 127.0.0.1:64113.",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && node -e \"require('node:fs').copyFileSync('src/db/schema.sql', 'dist/db/schema.sql')\"",

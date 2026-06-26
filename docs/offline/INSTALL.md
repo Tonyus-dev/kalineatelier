@@ -55,7 +55,7 @@ cd local-server
 npm run dev
 ```
 
-Servidor esperado em `http://127.0.0.1:4517`. Deixe este terminal aberto.
+Servidor esperado em `http://127.0.0.1:64113`. Deixe este terminal aberto.
 
 ## 5. Rodar o frontend
 

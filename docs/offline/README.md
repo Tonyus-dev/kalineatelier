@@ -66,7 +66,7 @@ cd local-server
 npm install
 npm run dev
 # em outro terminal:
-curl http://127.0.0.1:4517/health
+curl http://127.0.0.1:64113/health
 ```
 
 Resposta esperada:

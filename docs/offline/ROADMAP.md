@@ -20,7 +20,7 @@ PR 6 — ponte criptografada futura
 - Runtime mode (`online` | `offline`), default `online`.
 - Client local mínimo (`checkLocalHealth`).
 - Interface de model provider + provider mock.
-- `local-server` isolado com `GET /health` em `127.0.0.1:4517`.
+- `local-server` isolado com `GET /health` em `127.0.0.1:64113`.
 
 **Fora de escopo:** SQLite, schema, chat/registro/jardim/revisão funcionais, UI Atelier,
 iframe, rotas `/atelier`, modelos reais, voz, Cloudflare, ponte.

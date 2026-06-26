@@ -2,11 +2,11 @@
 /**
  * Smoke test do local-server da Kaline Offline.
  *
- * Pressupõe que o local-server já está rodando em 127.0.0.1:4517 (npm run dev / start).
+ * Pressupõe que o local-server já está rodando em 127.0.0.1:64113 (npm run dev / start).
  * Não exige rede externa, Ollama ou OpenRouter — usa apenas o provider mock.
  */
 
-const BASE_URL = process.env.KALINE_SMOKE_BASE_URL ?? "http://127.0.0.1:4517";
+const BASE_URL = process.env.KALINE_SMOKE_BASE_URL ?? "http://127.0.0.1:64113";
 
 async function request(path, init) {
   const res = await fetch(`${BASE_URL}${path}`, {

@@ -65,7 +65,7 @@ export async function checkLocalHealth(timeoutMs = HEALTH_TIMEOUT_MS): Promise<L
     return {
       ok: false,
       reason: "offline",
-      message: "API local indisponível. Inicie o local-server em 127.0.0.1:4517.",
+      message: "API local indisponível. Inicie o local-server em 127.0.0.1:64113.",
     };
   } finally {
     clearTimeout(timer);

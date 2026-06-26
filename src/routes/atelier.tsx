@@ -43,7 +43,7 @@ function AtelierPage() {
         <div>
           <h1 className="text-xl font-semibold">Kaline Atelier</h1>
           <p className="text-sm text-muted-foreground">
-            Experiência offline-first sobre a API local em 127.0.0.1:4517.
+            Experiência offline-first sobre a API local em 127.0.0.1:64113.
           </p>
         </div>
         <StatusBadge />

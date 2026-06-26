@@ -2,10 +2,10 @@
  * Configuração do acesso à API local da Kaline Offline.
  *
  * A URL vem de `VITE_KALINE_LOCAL_API`; na ausência, usa o default canônico
- * `http://127.0.0.1:4517` (loopback apenas — o servidor local nunca escuta em 0.0.0.0).
+ * `http://127.0.0.1:64113` (loopback apenas — o servidor local nunca escuta em 0.0.0.0).
  */
 
-export const DEFAULT_LOCAL_API_URL = "http://127.0.0.1:4517";
+export const DEFAULT_LOCAL_API_URL = "http://127.0.0.1:64113";
 
 /** URL base da API local, sem barra final. */
 export function getLocalApiUrl(): string {

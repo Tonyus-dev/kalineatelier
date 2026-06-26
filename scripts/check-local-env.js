@@ -47,11 +47,11 @@ async function main() {
     ? ok("bun encontrado")
     : fail("bun não encontrado", "Instale: https://bun.sh");
 
-  (await checkPortFree(4517))
-    ? ok("Porta 4517 livre (local-server)")
+  (await checkPortFree(64113))
+    ? ok("Porta 64113 livre (local-server)")
     : fail(
-        "Porta 4517 ocupada",
-        "Feche o processo que está usando a porta 4517 ou outro local-server já rodando.",
+        "Porta 64113 ocupada",
+        "Feche o processo que está usando a porta 64113 ou outro local-server já rodando.",
       );
 
   (await checkPortFree(5173))

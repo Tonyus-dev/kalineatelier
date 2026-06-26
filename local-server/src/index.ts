@@ -1,7 +1,7 @@
 /**
  * Ponto de entrada do servidor local da Kaline Offline.
  *
- * - Sobe Fastify em 127.0.0.1:4517 (loopback apenas).
+ * - Sobe Fastify em 127.0.0.1:64113 (loopback apenas).
  * - Trata EADDRINUSE com mensagem clara em português.
  * - Encerra de forma limpa em SIGINT/SIGTERM.
  */

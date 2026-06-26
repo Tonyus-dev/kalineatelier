@@ -1,9 +1,9 @@
 # Solução de problemas — Kaline Offline v0.1
 
-## Porta 4517 ocupada
+## Porta 64113 ocupada
 
 ```txt
-Porta 4517 já está em uso. Feche outro processo da Kaline Local ou altere a porta local.
+Porta 64113 já está em uso. Feche outro processo da Kaline Local ou altere a porta local.
 ```
 
 Outro `local-server` (ou outro processo qualquer) já está usando a porta. Feche o processo
@@ -37,9 +37,9 @@ Instale Node.js 20+ em [nodejs.org](https://nodejs.org) ou via [nvm](https://git
 ## `local-server` não responde
 
 - Confirme que o terminal do `local-server` está aberto e sem erro.
-- Teste diretamente: `curl http://127.0.0.1:4517/health`.
+- Teste diretamente: `curl http://127.0.0.1:64113/health`.
 - Confirme que `VITE_KALINE_LOCAL_API` no `.env` da raiz aponta para a URL correta
-  (padrão `http://127.0.0.1:4517`).
+  (padrão `http://127.0.0.1:64113`).
 
 ## Frontend não abre
 

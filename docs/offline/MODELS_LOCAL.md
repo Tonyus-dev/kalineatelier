@@ -4,7 +4,7 @@ A Kaline Offline roda com **provider mock por padrão**: nenhuma IA real é cons
 nenhum token é gasto, nenhuma rede externa é usada. Isso é intencional para que qualquer
 pessoa consiga baixar e testar sem custo e sem configuração.
 
-Veja o status atual do provider em `GET http://127.0.0.1:4517/model/status`, ou na área de
+Veja o status atual do provider em `GET http://127.0.0.1:64113/model/status`, ou na área de
 status da UI (Configurações/Modelos/Conexões).
 
 ## Opções de provider (`KALINE_MODEL_PROVIDER`)

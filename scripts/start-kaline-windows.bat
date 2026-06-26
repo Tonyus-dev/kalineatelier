@@ -41,7 +41,7 @@ if not exist "node_modules" (
 )
 
 echo.
-echo == Abrindo o local-server em uma nova janela ^(http://127.0.0.1:4517^) ==
+echo == Abrindo o local-server em uma nova janela ^(http://127.0.0.1:64113^) ==
 start "Kaline Local Server" cmd /k "cd /d "%cd%\local-server" && npm run dev"
 
 echo == Abrindo o frontend em uma nova janela ^(URL real aparece no terminal^) ==

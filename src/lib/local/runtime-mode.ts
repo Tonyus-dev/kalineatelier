@@ -2,7 +2,7 @@
  * Runtime mode da Kaline.
  *
  * "online"  → matriz herdada do Totalidade (Supabase + OpenRouter). Comportamento atual.
- * "offline" → Kaline Offline local-first (API local em 127.0.0.1:4517). Apenas preparado
+ * "offline" → Kaline Offline local-first (API local em 127.0.0.1:64113). Apenas preparado
  *             nesta fase: nenhuma rota real é trocada ainda.
  *
  * O default é SEMPRE "online", para não quebrar o app atual. O modo offline só é assumido

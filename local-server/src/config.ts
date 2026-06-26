@@ -1,7 +1,7 @@
 /**
  * Configuração do servidor local da Kaline Offline.
  *
- * Host e porta têm default loopback (127.0.0.1:4517) e podem ser ajustados via env
+ * Host e porta têm default loopback (127.0.0.1:64113) e podem ser ajustados via env
  * para cenários de desenvolvimento, mas o servidor NUNCA deve escutar em 0.0.0.0
  * por padrão: é estritamente local-first e privado. Ver docs/offline/TUNNEL_READY.md.
  */
@@ -43,7 +43,7 @@ function env(key: string, fallback: string): string {
 }
 
 export const HOST = env("KALINE_LOCAL_HOST", "127.0.0.1");
-export const PORT = Number(env("KALINE_LOCAL_PORT", "4517"));
+export const PORT = Number(env("KALINE_LOCAL_PORT", "64113"));
 
 export const DATA_DIR = path.resolve(PROJECT_ROOT, env("KALINE_DATA_DIR", "./data"));
 export const DB_PATH = path.resolve(
