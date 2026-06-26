@@ -121,3 +121,112 @@ export function listLocalSediments(status?: string) {
   const query = status ? `?status=${encodeURIComponent(status)}` : "";
   return localApiRequest<{ sediments: unknown[] }>(`/sediments${query}`);
 }
+
+export function createLocalRegistro(input: {
+  kind: string;
+  title: string;
+  content: string;
+  source?: string;
+}) {
+  return localApiRequest<{ registro: unknown }>("/registro", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function archiveLocalRegistro(id: string) {
+  return localApiRequest<{ ok: true }>(`/registro/${id}`, { method: "DELETE" });
+}
+
+export function createLocalMemoria(input: { title: string; content: string; tags?: string[] }) {
+  return localApiRequest<{ memoria: unknown }>("/memories", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function reviewLocalMemoria(id: string, quality: string) {
+  return localApiRequest<{ memoria: unknown }>(`/memories/${id}/review`, {
+    method: "PATCH",
+    body: JSON.stringify({ quality }),
+  });
+}
+
+export function archiveLocalMemoria(id: string) {
+  return localApiRequest<{ ok: true }>(`/memories/${id}/archive`, { method: "PATCH" });
+}
+
+export function runLocalSedimentation(threadId: string) {
+  return localApiRequest<{ created: unknown[] }>("/sediments/run", {
+    method: "POST",
+    body: JSON.stringify({ threadId }),
+  });
+}
+
+export function confirmLocalSediment(id: string) {
+  return localApiRequest<{ sedimento: unknown; memoriaId: string }>(`/sediments/${id}/confirm`, {
+    method: "POST",
+  });
+}
+
+export function discardLocalSediment(id: string) {
+  return localApiRequest<{ sedimento: unknown }>(`/sediments/${id}/discard`, { method: "POST" });
+}
+
+export function listLocalDecisoes() {
+  return localApiRequest<{ decisoes: unknown[] }>("/decisoes");
+}
+
+export function createLocalDecisao(input: { title: string; content: string; project?: string }) {
+  return localApiRequest<{ decisao: unknown }>("/decisoes", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listLocalInbox(status?: string) {
+  const query = status ? `?status=${encodeURIComponent(status)}` : "";
+  return localApiRequest<{ events: unknown[] }>(`/inbox${query}`);
+}
+
+export function createLocalInboxEvent(input: {
+  source: string;
+  type: string;
+  title?: string;
+  payload: unknown;
+}) {
+  return localApiRequest<{ event: unknown }>("/inbox", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateLocalInboxEventStatus(id: string, status: string) {
+  return localApiRequest<{ event: unknown }>(`/inbox/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function listLocalReports() {
+  return localApiRequest<{ reports: unknown[] }>("/reports");
+}
+
+export function generateLocalReport() {
+  return localApiRequest<{ report: unknown }>("/reports/generate", { method: "POST" });
+}
+
+export function listLocalSettings() {
+  return localApiRequest<{ settings: unknown[] }>("/settings");
+}
+
+export function putLocalSetting(key: string, value: unknown) {
+  return localApiRequest<{ setting: unknown }>(`/settings/${encodeURIComponent(key)}`, {
+    method: "PUT",
+    body: JSON.stringify({ value }),
+  });
+}
+
+export function getLocalIdentity() {
+  return localApiRequest<{ summary: string; sources: string[] }>("/identity");
+}
