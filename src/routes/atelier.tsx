@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { checkLocalHealth } from "@/lib/local/local-api-client";
@@ -9,6 +10,7 @@ import { AtelierJardim } from "@/components/atelier/AtelierJardim";
 import { AtelierRevisao } from "@/components/atelier/AtelierRevisao";
 import { AtelierRelatorios } from "@/components/atelier/AtelierRelatorios";
 import { AtelierConfiguracoes } from "@/components/atelier/AtelierConfiguracoes";
+import { AtelierPinGate } from "@/components/atelier/AtelierPinGate";
 
 export const Route = createFileRoute("/atelier")({ component: AtelierPage });
 
@@ -27,6 +29,7 @@ function StatusBadge() {
 }
 
 function AtelierPage() {
+  const [unlocked, setUnlocked] = useState(false);
   const { data: health } = useQuery({
     queryKey: ["atelier", "health"],
     queryFn: () => checkLocalHealth(),
@@ -55,34 +58,42 @@ function AtelierPage() {
         </div>
       )}
 
-      <Tabs defaultValue="chat">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="chat">Chat Kaline</TabsTrigger>
-          <TabsTrigger value="registro">Registro Vivo</TabsTrigger>
-          <TabsTrigger value="jardim">Jardim</TabsTrigger>
-          <TabsTrigger value="revisao">Revisão</TabsTrigger>
-          <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
-          <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
-        </TabsList>
-        <TabsContent value="chat">
-          <AtelierChat disabled={offline} />
-        </TabsContent>
-        <TabsContent value="registro">
-          <AtelierRegistro disabled={offline} />
-        </TabsContent>
-        <TabsContent value="jardim">
-          <AtelierJardim disabled={offline} />
-        </TabsContent>
-        <TabsContent value="revisao">
-          <AtelierRevisao disabled={offline} />
-        </TabsContent>
-        <TabsContent value="relatorios">
-          <AtelierRelatorios disabled={offline} />
-        </TabsContent>
-        <TabsContent value="configuracoes">
-          <AtelierConfiguracoes disabled={offline} />
-        </TabsContent>
-      </Tabs>
+      {!offline && !unlocked && (
+        <div className="py-8">
+          <AtelierPinGate onUnlock={() => setUnlocked(true)} />
+        </div>
+      )}
+
+      {!offline && unlocked && (
+        <Tabs defaultValue="chat">
+          <TabsList className="flex-wrap">
+            <TabsTrigger value="chat">Chat Kaline</TabsTrigger>
+            <TabsTrigger value="registro">Registro Vivo</TabsTrigger>
+            <TabsTrigger value="jardim">Jardim</TabsTrigger>
+            <TabsTrigger value="revisao">Revisão</TabsTrigger>
+            <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
+            <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
+          </TabsList>
+          <TabsContent value="chat">
+            <AtelierChat disabled={offline} />
+          </TabsContent>
+          <TabsContent value="registro">
+            <AtelierRegistro disabled={offline} />
+          </TabsContent>
+          <TabsContent value="jardim">
+            <AtelierJardim disabled={offline} />
+          </TabsContent>
+          <TabsContent value="revisao">
+            <AtelierRevisao disabled={offline} />
+          </TabsContent>
+          <TabsContent value="relatorios">
+            <AtelierRelatorios disabled={offline} />
+          </TabsContent>
+          <TabsContent value="configuracoes">
+            <AtelierConfiguracoes disabled={offline} />
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }

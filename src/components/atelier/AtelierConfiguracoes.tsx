@@ -45,6 +45,11 @@ export function AtelierConfiguracoes({ disabled }: { disabled: boolean }) {
           <p className="text-xs text-muted-foreground">
             Fontes: {identityQuery.data?.sources.join(", ") ?? "—"}
           </p>
+          <p className="text-xs text-muted-foreground pt-2">
+            Facetas (kaline, kharis, kuanyin, coder): referência de identidade herdada do
+            ecossistema online — não são chats, áreas comerciais ou clientes separados aqui na
+            Kaline Offline. O único chat ativo é o Chat Kaline.
+          </p>
         </CardContent>
       </Card>
 
