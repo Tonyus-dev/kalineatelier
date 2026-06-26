@@ -20,6 +20,10 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Kaline Offline — local-server (projeto Node isolado)
+local-server/node_modules
+local-server/dist
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -1,0 +1,20 @@
+{
+  "name": "kaline-local-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Servidor local-first da Kaline Offline. Isolado da raiz (bun). Escuta apenas em 127.0.0.1:4517.",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "fastify": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -13,7 +13,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "local:dev": "npm --prefix local-server run dev",
+    "local:build": "npm --prefix local-server run build"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.51",
