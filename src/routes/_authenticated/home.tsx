@@ -1,19 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  BookOpen,
-  CalendarDays,
-  Car,
-  Dumbbell,
-  Feather,
-  Flower2,
-  Gavel,
-  Mic,
-  Sparkle,
-  Sprout,
-  Users,
-} from "lucide-react";
+import { BookOpen, CalendarDays, Feather, Flower2, Mic, Sparkle, Sprout } from "lucide-react";
 import { listRegistros } from "@/lib/registro-vivo.functions";
 import { dueMemorias } from "@/lib/jardim.functions";
 import { KittScanner, type KittState } from "@/components/KittScanner";
@@ -74,13 +62,9 @@ const PRIMARY: Card[] = [
 
 const SATELLITES: Card[] = [
   { to: "/revisao", title: "Revisão", sub: "o que vence hoje", icon: Sprout },
-  { to: "/juridico", title: "Jurídico", sub: "corpus curado", icon: Gavel },
   { to: "/agenda", title: "Agenda", sub: "compromissos", icon: CalendarDays },
-  { to: "/treinos", title: "Khora · Treinos", sub: "corpo vivo", icon: Dumbbell },
-  { to: "/drive", title: "Kaline Drive", sub: "carro, combustível, mobilidade", icon: Car },
   { to: "/livros", title: "Livros", sub: "leituras e resumos", icon: BookOpen },
   { to: "/camara", title: "Câmara de Eco", sub: "áudio e atas", icon: Mic },
-  { to: "/perfis", title: "Perfis", sub: "convites & permissões", icon: Users },
 ];
 
 function HomeCockpit() {
