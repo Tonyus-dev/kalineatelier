@@ -1,6 +1,6 @@
 # Kaline Local Server
 
-Backend **local-first** e **isolado** da Kaline Offline. Escuta **apenas** em `127.0.0.1:4517`.
+Backend **local-first** e **isolado** da Kaline Offline. Escuta **apenas** em `127.0.0.1:64113`.
 
 Este projeto é independente da raiz: tem `package.json` e `tsconfig.json` próprios. A raiz
 usa **bun**; aqui usamos **Node + npm + Fastify**. O `tsconfig` da raiz inclui só `src/**`,
@@ -32,13 +32,13 @@ npm run build && npm run start
 Teste:
 
 ```bash
-curl http://127.0.0.1:4517/health
+curl http://127.0.0.1:64113/health
 ```
 
 ## Comportamento operacional
 
 - **Porta ocupada (`EADDRINUSE`)**: o servidor encerra com a mensagem
-  `Porta 4517 já está em uso. Feche outro processo da Kaline Local ou altere a porta local.`
+  `Porta 64113 já está em uso. Feche outro processo da Kaline Local ou altere a porta local.`
 - **Encerramento limpo**: `SIGINT` (Ctrl-C) e `SIGTERM` fecham o Fastify antes de sair.
 
 ## Segurança

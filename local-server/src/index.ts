@@ -1,13 +1,14 @@
 /**
  * Ponto de entrada do servidor local da Kaline Offline.
  *
- * - Sobe Fastify em 127.0.0.1:4517 (loopback apenas).
+ * - Sobe Fastify em 127.0.0.1:64113 (loopback apenas).
  * - Trata EADDRINUSE com mensagem clara em português.
  * - Encerra de forma limpa em SIGINT/SIGTERM.
  */
 
 import Fastify from "fastify";
-import { HOST, PORT } from "./config.js";
+import cors from "@fastify/cors";
+import { HOST, PORT, CORS_ALLOWED_ORIGINS } from "./config.js";
 import { getDb, closeDb } from "./db/connection.js";
 import { runMigrations } from "./db/migrate.js";
 import { registerHealthRoute } from "./routes/health.js";
@@ -22,12 +23,20 @@ import { registerSedimentsRoutes } from "./routes/sediments.js";
 import { registerDecisoesRoutes } from "./routes/decisoes.js";
 import { registerInboxRoutes } from "./routes/inbox.js";
 import { registerReportsRoutes } from "./routes/reports.js";
+import { registerModelRoutes } from "./routes/model.js";
+import { registerBridgeRoutes } from "./routes/bridge.js";
 
 runMigrations(getDb());
 
 const app = Fastify({ logger: true });
 
+await app.register(cors, {
+  origin: CORS_ALLOWED_ORIGINS,
+});
+
 await registerHealthRoute(app);
+await registerModelRoutes(app);
+await registerBridgeRoutes(app);
 await registerSettingsRoutes(app);
 await registerIdentityRoutes(app);
 await registerThreadsRoutes(app);

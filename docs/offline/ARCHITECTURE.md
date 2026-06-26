@@ -12,7 +12,7 @@ Frontend herdado do Totalidade (React 19 + TanStack)
 Runtime mode: online | offline        ← existe nesta fase (default: online)
         │
         ▼
-API local em 127.0.0.1:4517           ← existe nesta fase, mas mínima (só /health)
+API local em 127.0.0.1:64113           ← existe nesta fase, mas mínima (só /health)
         │
         ▼
 SQLite                                 ← PR 2
@@ -41,18 +41,18 @@ Revisão, Sedimentos e Relatórios       ← PR 2 (dados) / PR 3 (UI)
 | Componente | Local | Papel nesta fase |
 |---|---|---|
 | Runtime mode | `src/lib/local/runtime-mode.ts` | Declara `online`/`offline`; default `online`. |
-| Local config | `src/lib/local/local-config.ts` | Resolve a URL da API local (default `http://127.0.0.1:4517`). |
+| Local config | `src/lib/local/local-config.ts` | Resolve a URL da API local (default `http://127.0.0.1:64113`). |
 | Model provider (tipos) | `src/lib/local/model-provider.types.ts` | Contrato mínimo de um provider de modelo. |
 | Model provider (mock) | `src/lib/local/model-provider.mock.ts` | Provider mockado, sem modelo real e sem token. |
 | Local API client | `src/lib/local/local-api-client.ts` | `checkLocalHealth()` com timeout curto. |
-| Local server | `local-server/` | Node + Fastify; `GET /health` em `127.0.0.1:4517`. |
+| Local server | `local-server/` | Node + Fastify; `GET /health` em `127.0.0.1:64113`. |
 
 ## Decisões técnicas registradas
 
 - **`local-server` isolado.** Tem `package.json` e `tsconfig.json` próprios. A raiz usa
   **bun**; o servidor local usa **Node + npm + Fastify**. O `tsconfig` da raiz inclui apenas
   `src/**`, então o build/typecheck da raiz não compila o `local-server`.
-- **Porta fixa `127.0.0.1:4517`.** Tratamento explícito de `EADDRINUSE` e graceful shutdown
+- **Porta fixa `127.0.0.1:64113`.** Tratamento explícito de `EADDRINUSE` e graceful shutdown
   em `SIGINT`/`SIGTERM`.
 - **PRAGMAs do SQLite** (a partir do PR 2): `journal_mode = WAL`, `foreign_keys = ON`,
   `busy_timeout = 5000`. Registrado aqui antecipadamente para servir de referência ao PR 2.

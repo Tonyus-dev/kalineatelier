@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Servidor local-first da Kaline Offline. Isolado da raiz (bun). Escuta apenas em 127.0.0.1:4517.",
+  "description": "Servidor local-first da Kaline Offline. Isolado da raiz (bun). Escuta apenas em 127.0.0.1:64113.",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && node -e \"require('node:fs').copyFileSync('src/db/schema.sql', 'dist/db/schema.sql')\"",
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@fastify/cors": "^10.0.2",
     "better-sqlite3": "^12.11.1",
     "fastify": "^5.2.1",
     "zod": "^3.24.2"

@@ -65,7 +65,7 @@ export async function checkLocalHealth(timeoutMs = HEALTH_TIMEOUT_MS): Promise<L
     return {
       ok: false,
       reason: "offline",
-      message: "API local indisponível. Inicie o local-server em 127.0.0.1:4517.",
+      message: "API local indisponível. Inicie o local-server em 127.0.0.1:64113.",
     };
   } finally {
     clearTimeout(timer);
@@ -229,4 +229,30 @@ export function putLocalSetting(key: string, value: unknown) {
 
 export function getLocalIdentity() {
   return localApiRequest<{ summary: string; sources: string[] }>("/identity");
+}
+
+export type LocalModelStatus = {
+  ok: boolean;
+  provider: "mock" | "openrouter" | "ollama";
+  configured: boolean;
+  fallbackToMock: boolean;
+  message: string;
+};
+
+export function getLocalModelStatus() {
+  return localApiRequest<LocalModelStatus>("/model/status");
+}
+
+export type LocalBridgeStatus = {
+  ok: boolean;
+  mode: string;
+  deviceIdConfigured: boolean;
+  cloudBridgeConfigured: boolean;
+  bridgePublicKeyConfigured: boolean;
+  lastCloudCheckAt: string | null;
+  message: string;
+};
+
+export function getLocalBridgeStatus() {
+  return localApiRequest<LocalBridgeStatus>("/bridge/status");
 }
