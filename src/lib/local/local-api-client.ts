@@ -27,9 +27,7 @@ export type LocalHealthError = {
 
 export type LocalHealthResult = LocalHealthOk | LocalHealthError;
 
-export async function checkLocalHealth(
-  timeoutMs = HEALTH_TIMEOUT_MS,
-): Promise<LocalHealthResult> {
+export async function checkLocalHealth(timeoutMs = HEALTH_TIMEOUT_MS): Promise<LocalHealthResult> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
