@@ -23,6 +23,11 @@ dist-ssr
 # Kaline Offline — local-server (projeto Node isolado)
 local-server/node_modules
 local-server/dist
+local-server/data/*.sqlite
+local-server/data/*.sqlite-shm
+local-server/data/*.sqlite-wal
+local-server/data/*.db
+!local-server/data/.gitkeep
 
 # Editor directories and files
 .vscode/*

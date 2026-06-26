@@ -1,11 +1,12 @@
 /**
  * Client mínimo da API local da Kaline Offline.
  *
- * Nesta fase expõe apenas `checkLocalHealth()`. Ele nunca lança: em qualquer falha
- * (servidor desligado, timeout, resposta inesperada) retorna um estado controlado, para
- * que a UI possa ser honesta sobre a disponibilidade local sem quebrar.
+ * `checkLocalHealth()` nunca lança: em qualquer falha (servidor desligado, timeout,
+ * resposta inesperada) retorna um estado controlado, para que a UI possa ser honesta
+ * sobre a disponibilidade local sem quebrar.
  *
- * Não é usado em telas principais nesta fase.
+ * As demais funções (`localApi*`) são chamadas finas sobre os endpoints do PR 2 — sem
+ * lógica de UI, sem cache, sem retry. Ainda não são usadas em telas principais.
  */
 
 import { localApiUrl } from "./local-config";
@@ -69,4 +70,54 @@ export async function checkLocalHealth(timeoutMs = HEALTH_TIMEOUT_MS): Promise<L
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function localApiRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(localApiUrl(path), {
+    headers: { "content-type": "application/json", accept: "application/json" },
+    ...init,
+  });
+  if (!res.ok) {
+    throw new Error(`API local respondeu com status ${res.status} em ${path}.`);
+  }
+  return (await res.json()) as T;
+}
+
+export function listLocalThreads() {
+  return localApiRequest<{ threads: unknown[] }>("/threads");
+}
+
+export function createLocalThread(input: { title?: string; facet: string }) {
+  return localApiRequest<{ thread: unknown }>("/threads", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listLocalMessages(threadId: string) {
+  return localApiRequest<{ messages: unknown[] }>(`/messages/${threadId}`);
+}
+
+export function sendLocalChatMessage(input: {
+  threadId?: string;
+  message: string;
+  facet?: string;
+}) {
+  return localApiRequest<{ thread: unknown; userMessage: unknown; assistantMessage: unknown }>(
+    "/chat",
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+export function listLocalRegistros() {
+  return localApiRequest<{ registros: unknown[] }>("/registro");
+}
+
+export function listLocalMemories() {
+  return localApiRequest<{ memories: unknown[] }>("/memories");
+}
+
+export function listLocalSediments(status?: string) {
+  const query = status ? `?status=${encodeURIComponent(status)}` : "";
+  return localApiRequest<{ sediments: unknown[] }>(`/sediments${query}`);
 }
