@@ -1,6 +1,5 @@
 import { kalineApple } from "@/lib/brand-assets";
 import { klioApple } from "@/lib/brand-assets";
-import { khoraApple } from "@/lib/brand-assets";
 
 import { RouteErrorBoundary, RouteNotFoundBoundary } from "@/components/loading-states";
 
@@ -183,31 +182,6 @@ function KlioHome() {
         ))}
       </div>
 
-      <Link
-        to="/treinos"
-        className="block rounded-2xl border border-[#C98A65]/30 bg-gradient-to-br from-[#16131A] to-[#0F0D14] p-5 mb-8 hover:border-[#D9A441] transition group"
-      >
-        <div className="flex items-center gap-4">
-          <img
-            src={khoraApple.url}
-            alt="Khora"
-            className="w-14 h-14 sm:w-16 sm:h-16 apple-glow shrink-0"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] sm:text-xs tracking-[0.28em] uppercase text-[#C98A65]">
-              faceta khora · corpo
-            </p>
-            <h3 className="serif text-xl sm:text-2xl text-[color:var(--ivory)] mt-1">Treinos</h3>
-            <p className="text-sm text-[color:var(--ivory-dim)] mt-1">
-              Khora conduz o treino de hoje, registra séries e acompanha progressão.
-            </p>
-          </div>
-          <span className="hidden sm:inline text-xs uppercase tracking-[0.22em] text-[#D9A441] group-hover:text-[color:var(--ivory)] transition">
-            Abrir →
-          </span>
-        </div>
-      </Link>
-
       <section className="rounded-2xl border border-[color:var(--border)] bg-card/30 p-5 sm:p-6 mb-8">
         <p className="text-[10px] sm:text-xs tracking-[0.28em] uppercase text-[color:var(--gold)] mb-3">
           Metodologia
@@ -233,14 +207,6 @@ function KlioHome() {
       </section>
 
       <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 text-xs text-[color:var(--ivory-dim)] pb-4">
-        <Link to="/jurisprudencia" className="hover:text-[color:var(--gold)]">
-          Jurisprudência
-        </Link>
-        <span>·</span>
-        <Link to="/legislacao" className="hover:text-[color:var(--gold)]">
-          Legislação
-        </Link>
-        <span>·</span>
         <Link to="/camara" className="hover:text-[color:var(--gold)]">
           Câmara de Eco
         </Link>

@@ -61,7 +61,6 @@ try {
   await app.listen({ host: HOST, port: PORT });
 } catch (err) {
   if (err && typeof err === "object" && (err as NodeJS.ErrnoException).code === "EADDRINUSE") {
-    // eslint-disable-next-line no-console
     console.error(
       `\nPorta ${PORT} já está em uso. Feche outro processo da Kaline Local ou altere a porta local.\n`,
     );

@@ -38,14 +38,21 @@ iframe, rotas `/atelier`, modelos reais, voz, Cloudflare, ponte.
 - Shell com status da API local; módulos: Chat, Coder, Registro Vivo, Jardim, Revisão,
   Relatórios, Configurações.
 
-## Pós-PR 3
+## PR 4 — Otimização estrutural: Kaline Offline enxuta (concluído)
+
+Poda de navegação/rotas/dashboard, sem nenhuma funcionalidade nova: removidos comércio de
+Kuan-Yin, chats paralelos (Kháris, Kuan-Yin), Treinos dedicado, Drive, Jurídico dedicado
+(Jurisprudência/Legislação) e Perfis & Convites. Nenhuma migração apagada. Detalhes e
+classificação de migrações em [`OFFLINE_SCOPE.md`](./OFFLINE_SCOPE.md).
+
+## Pós-PR 4
 
 ```txt
-PR 4 — modelos locais reais
-PR 5 — Whisper Small / Kokoro
-PR 6 — pipeline público criptografado
-PR 7 — ponte com Totalidade online
-PR 8 — empacotamento portátil
+PR 5 — modelos locais reais
+PR 6 — Whisper Small / Kokoro
+PR 7 — pipeline público criptografado
+PR 8 — ponte com Totalidade online
+PR 9 — empacotamento portátil
 ```
 
 A ponte criptografada só nasce depois de existirem, estáveis: SQLite local, `inbox_events`,

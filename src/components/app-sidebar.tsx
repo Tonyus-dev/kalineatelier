@@ -1,26 +1,18 @@
+import type { ComponentProps } from "react";
 import { kalineWordmark } from "@/lib/brand-assets";
 import { kalineApple } from "@/lib/brand-assets";
-import { kharisApple } from "@/lib/brand-assets";
-import { kuanyinApple } from "@/lib/brand-assets";
 import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import {
   BookOpen,
-  Scale,
-  Gavel,
   Mic,
   Home,
   LogOut,
   CalendarDays,
   Sparkle,
-  Dumbbell,
   Feather,
   Flower2,
   Sprout,
-  Users,
-  ShieldCheck,
   UserCircle,
-  Gauge,
-  MonitorPlay,
 } from "lucide-react";
 
 import {
@@ -57,21 +49,6 @@ const groups = [
     ],
   },
   {
-    label: "Corpo · Khora",
-    items: [
-      { title: "Treinos", url: "/treinos", icon: Dumbbell },
-      { title: "Drive", url: "/drive", icon: Gauge },
-    ],
-  },
-  {
-    label: "Jurídico",
-    items: [
-      { title: "Corpus curado", url: "/juridico", icon: Gavel },
-      { title: "Jurisprudência (pessoal)", url: "/jurisprudencia", icon: Gavel },
-      { title: "Legislação (pessoal)", url: "/legislacao", icon: Scale },
-    ],
-  },
-  {
     label: "Biblioteca",
     items: [
       { title: "Câmara de Eco", url: "/camara", icon: Mic },
@@ -79,20 +56,8 @@ const groups = [
     ],
   },
   {
-    label: "Comércio · Kuan-Yin",
-    items: [
-      { title: "Showroom", url: "/kuan-yin/showroom", icon: MonitorPlay },
-      { title: "Clientes", url: "/kuan-yin/clientes", icon: Users },
-      { title: "Guardiões", url: "/kuan-yin/guardioes", icon: ShieldCheck },
-      { title: "Negócio", url: "/kuan-yin/config", icon: Sparkle },
-    ],
-  },
-  {
     label: "Pessoas",
-    items: [
-      { title: "Meu perfil", url: "/perfil", icon: UserCircle },
-      { title: "Perfis & convites", url: "/perfis", icon: Users },
-    ],
+    items: [{ title: "Meu perfil", url: "/perfil", icon: UserCircle }],
   },
 ];
 
@@ -115,18 +80,6 @@ export function AppSidebar() {
 
   const conversas = [
     { facet: "kaline", label: "Kaline", icon: Sparkle, url: "/chat", apple: kalineApple.url },
-    {
-      facet: "kharis",
-      label: "Kháris",
-      url: "/kharis",
-      apple: kharisApple.url,
-    },
-    {
-      facet: "kuanyin",
-      label: "Kuan-Yin",
-      url: "/kuan-yin",
-      apple: kuanyinApple.url,
-    },
   ];
 
   return (
@@ -136,11 +89,6 @@ export function AppSidebar() {
           <div className="flex items-center gap-2">
             <div className="relative h-10 w-10 shrink-0">
               <img src={kalineApple.url} alt="Kaline" className="h-10 w-10 apple-glow" />
-              <img
-                src={kharisApple.url}
-                alt="Kháris"
-                className="absolute -bottom-1 -right-1 h-5 w-5 apple-glow"
-              />
             </div>
             <div className="min-w-0 leading-tight">
               <img src={kalineWordmark.url} alt="KALINE" className="h-4 w-auto" />
@@ -157,30 +105,16 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {conversas.map(({ facet, label, url, apple }) => {
-                const active =
-                  (facet === "kaline" && (path === "/chat" || path.startsWith("/chat/"))) ||
-                  (facet === "kharis" && path.startsWith("/kharis")) ||
-                  (facet === "kuanyin" && (path === "/kuan-yin" || path.startsWith("/kuan-yin/")));
+              {conversas.map(({ facet, label, apple }) => {
+                const active = path === "/chat" || path.startsWith("/chat/");
 
                 return (
                   <SidebarMenuItem key={facet}>
                     <SidebarMenuButton asChild isActive={active}>
-                      {facet === "kaline" ? (
-                        <Link to="/chat" onClick={closeSidebar} className="flex items-center gap-2">
-                          <img src={apple} alt="" className="h-4 w-4 apple-glow" />
-                          <span>{label}</span>
-                        </Link>
-                      ) : (
-                        <Link
-                          to={url as any}
-                          onClick={closeSidebar}
-                          className="flex items-center gap-2"
-                        >
-                          <img src={apple} alt="" className="h-4 w-4 apple-glow" />
-                          <span>{label}</span>
-                        </Link>
-                      )}
+                      <Link to="/chat" onClick={closeSidebar} className="flex items-center gap-2">
+                        <img src={apple} alt="" className="h-4 w-4 apple-glow" />
+                        <span>{label}</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -202,7 +136,7 @@ export function AppSidebar() {
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton asChild isActive={active}>
                         <Link
-                          to={item.url as any}
+                          to={item.url as ComponentProps<typeof Link>["to"]}
                           onClick={closeSidebar}
                           className="flex items-center gap-2"
                         >
