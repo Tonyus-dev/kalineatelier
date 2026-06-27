@@ -49,6 +49,9 @@ async function main() {
   const results = [];
   const ok = (label) => results.push({ label, ok: true });
   const fail = (label, hint) => results.push({ label, ok: false, hint });
+  // Aviso = pendência não-crítica (ex.: sem .env em CI, motor opcional ausente).
+  // Não derruba o exit code; só informa.
+  const warn = (label, hint) => results.push({ label, ok: false, warn: true, hint });
 
   checkCommand("node")
     ? ok("Node.js encontrado")
@@ -69,7 +72,7 @@ async function main() {
 
   (await checkPortFree(5173))
     ? ok("Porta 5173 livre (frontend, padrão Vite)")
-    : fail(
+    : warn(
         "Porta 5173 ocupada",
         "O Vite escolherá outra porta automaticamente; veja a URL no terminal.",
       );
@@ -83,14 +86,14 @@ async function main() {
 
   existsSync(path.join(ROOT, "local-server", ".env"))
     ? ok("local-server/.env encontrado")
-    : fail(
+    : warn(
         "local-server/.env não encontrado",
-        "Copie local-server/.env.example para local-server/.env.",
+        "Copie local-server/.env.example para local-server/.env (sem .env, roda em mock).",
       );
 
   existsSync(path.join(ROOT, "local-server", "data"))
     ? ok("Diretório de dados locais (local-server/data) encontrado")
-    : fail(
+    : warn(
         "local-server/data ainda não existe",
         "Será criado automaticamente na primeira execução do local-server.",
       );
@@ -151,14 +154,17 @@ async function main() {
 
   console.log("\nChecagem do ambiente local da Kaline Offline\n");
   for (const r of results) {
-    console.log(`${r.ok ? "[OK]  " : "[FALTA]"} ${r.label}`);
+    const tag = r.ok ? "[OK]   " : r.warn ? "[AVISO]" : "[FALTA]";
+    console.log(`${tag} ${r.label}`);
     if (!r.ok && r.hint) console.log(`        -> ${r.hint}`);
   }
 
-  const failures = results.filter((r) => !r.ok).length;
-  console.log(
-    `\n${failures === 0 ? "Tudo certo." : `${failures} item(ns) precisam de atenção.`}\n`,
-  );
+  const failures = results.filter((r) => !r.ok && !r.warn).length;
+  const warnings = results.filter((r) => r.warn).length;
+  const parts = [];
+  if (failures > 0) parts.push(`${failures} item(ns) críticos precisam de atenção`);
+  if (warnings > 0) parts.push(`${warnings} aviso(s) não-crítico(s)`);
+  console.log(`\n${parts.length === 0 ? "Tudo certo." : parts.join(" · ") + "."}\n`);
   process.exit(failures > 0 ? 1 : 0);
 }
 

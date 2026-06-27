@@ -72,5 +72,5 @@ curl http://127.0.0.1:64113/health
 Resposta esperada:
 
 ```json
-{ "ok": true, "service": "kaline-local", "mode": "offline-foundation", "version": "0.1.0" }
+{ "ok": true, "service": "kaline-local", "mode": "offline-foundation", "version": "0.2.0" }
 ```

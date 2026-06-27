@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS registro_vivo (
   updated_at TEXT NOT NULL,
   archived_at TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_registro_vivo_kind ON registro_vivo(kind, created_at);
 
 CREATE TABLE IF NOT EXISTS jardim_memorias (
   id TEXT PRIMARY KEY,
@@ -52,6 +53,7 @@ CREATE TABLE IF NOT EXISTS jardim_memorias (
   archived_at TEXT,
   source_sedimento_id TEXT REFERENCES sedimentos(id)
 );
+CREATE INDEX IF NOT EXISTS idx_jardim_memorias_due_at ON jardim_memorias(due_at);
 
 -- Sedimento é hipótese. Sedimentação não confirma verdade.
 CREATE TABLE IF NOT EXISTS sedimentos (
@@ -109,3 +111,4 @@ CREATE TABLE IF NOT EXISTS inbox_events (
   error TEXT,
   metadata_json TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_inbox_events_status ON inbox_events(status);

@@ -20,7 +20,11 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install dependencies
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies (frontend)
         run: bun install --frozen-lockfile
 
       - name: Lint (eslint + prettier)
@@ -34,3 +38,36 @@ jobs:
 
       - name: Build
         run: bun run build
+
+      # --- local-server (Node + Fastify, isolado da raiz bun) ---
+
+      - name: Install dependencies (local-server)
+        run: npm ci
+        working-directory: local-server
+
+      - name: Build local-server
+        run: npm run build
+        working-directory: local-server
+
+      - name: Test local-server
+        run: npm test
+        working-directory: local-server
+
+      - name: Check local env
+        run: node scripts/check-local-env.js
+
+      - name: Smoke test local-server
+        run: |
+          node local-server/dist/index.js &
+          SERVER_PID=$!
+          # Espera o /health responder (provider mock por padrão; sem Ollama/Whisper).
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:64113/health > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          node scripts/smoke-local-server.js
+          STATUS=$?
+          kill "$SERVER_PID" 2>/dev/null || true
+          exit $STATUS

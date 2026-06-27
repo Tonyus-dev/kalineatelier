@@ -91,7 +91,12 @@ export function listSediments(
   return db.prepare("SELECT * FROM sedimentos ORDER BY created_at DESC").all() as SedimentoRow[];
 }
 
-/** Confirmar promove o sedimento a uma memória no Jardim. */
+/**
+ * Confirmar promove o sedimento a uma memória no Jardim.
+ *
+ * A criação da memória e a atualização do sedimento acontecem na mesma transação: se uma
+ * falhar, nada é gravado (evita memória órfã sem o sedimento marcado como confirmado).
+ */
 export function confirmSediment(
   db: Database.Database,
   id: string,
@@ -101,22 +106,26 @@ export function confirmSediment(
     | undefined;
   if (!sed || sed.status !== "em_revisao") return null;
 
-  const memoria = createMemoria(db, {
-    title: `Sedimento confirmado · nível ${sed.level}`,
-    content: sed.content,
-    tags: ["sedimentado"],
-    sourceSedimentoId: sed.id,
+  const promote = db.transaction(() => {
+    const memoria = createMemoria(db, {
+      title: `Sedimento confirmado · nível ${sed.level}`,
+      content: sed.content,
+      tags: ["sedimentado"],
+      sourceSedimentoId: sed.id,
+    });
+
+    const now = nowIso();
+    db.prepare(
+      "UPDATE sedimentos SET status = 'confirmado', confirmed_at = @now, updated_at = @now WHERE id = @id",
+    ).run({ id, now });
+
+    return {
+      sedimento: db.prepare("SELECT * FROM sedimentos WHERE id = ?").get(id) as SedimentoRow,
+      memoriaId: memoria.id,
+    };
   });
 
-  const now = nowIso();
-  db.prepare(
-    "UPDATE sedimentos SET status = 'confirmado', confirmed_at = @now, updated_at = @now WHERE id = @id",
-  ).run({ id, now });
-
-  return {
-    sedimento: db.prepare("SELECT * FROM sedimentos WHERE id = ?").get(id) as SedimentoRow,
-    memoriaId: memoria.id,
-  };
+  return promote();
 }
 
 export function discardSediment(db: Database.Database, id: string): SedimentoRow | null {

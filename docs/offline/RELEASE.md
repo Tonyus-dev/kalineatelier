@@ -1,4 +1,4 @@
-# Checklist de Release — Kaline Offline v0.1
+# Checklist de Release — Kaline Offline v0.2
 
 Checklist a ser percorrido antes de qualquer release/tag desta fase tunnel-ready.
 
@@ -8,6 +8,8 @@ Checklist a ser percorrido antes de qualquer release/tag desta fase tunnel-ready
 - [ ] `bun run build` passou
 - [ ] `bun run test` passou
 - [ ] `cd local-server && npm run build` passou
+- [ ] `cd local-server && npm test` passou
+- [ ] `node scripts/check-local-env.js` passou
 - [ ] `node scripts/smoke-local-server.js` passou (com `local-server` rodando)
 
 ## Ambiente e segredos

@@ -54,7 +54,7 @@ export const DB_PATH = path.resolve(
 export const SERVICE_INFO = {
   service: "kaline-local",
   mode: "offline-foundation",
-  version: "0.1.0",
+  version: "0.2.0",
 } as const;
 
 export const MODEL_CONFIG = {

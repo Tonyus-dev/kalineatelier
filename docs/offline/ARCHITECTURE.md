@@ -1,28 +1,32 @@
 # Arquitetura — Kaline Offline
 
-Visão de alto nível do **destino** da Kaline Offline. Nem tudo aqui existe ainda:
-este documento descreve para onde vamos, e marca o que já é real nesta fase.
+Visão de alto nível da Kaline Offline. A maior parte do diagrama já é real (v0.2 / PR 6);
+cada linha marca explicitamente se é **implementado** hoje ou **estado futuro**.
 
-## Diagrama (futuro)
+## Diagrama
 
 ```txt
 Frontend herdado do Totalidade (React 19 + TanStack)
         │
         ▼
-Runtime mode: online | offline        ← existe nesta fase (default: online)
+Runtime mode: online | offline        ← implementado (default: online)
         │
         ▼
-API local em 127.0.0.1:64113           ← existe nesta fase, mas mínima (só /health)
+API local em 127.0.0.1:64113           ← implementado (REST completa: chat, memória, etc.)
         │
         ▼
-SQLite                                 ← PR 2
+SQLite                                 ← implementado (WAL + foreign_keys + índices)
         │
         ▼
-Model Provider                         ← mock nesta fase; modelo real só no PR 4
+Model Provider                         ← implementado: mock (padrão), Ollama/Qwen real,
+                                         OpenRouter opcional; transcrição via whisper.cpp
         │
         ▼
 Memória, Registro Vivo, Jardim,
-Revisão, Sedimentos e Relatórios       ← PR 2 (dados) / PR 3 (UI)
+Revisão, Sedimentos e Relatórios       ← implementado (dados + UI no Atelier)
+        │
+        ▼
+Ponte criptografada com o Totalidade   ← estado futuro (ver TUNNEL_READY.md)
 ```
 
 ## Princípios
@@ -36,16 +40,16 @@ Revisão, Sedimentos e Relatórios       ← PR 2 (dados) / PR 3 (UI)
 - **Identidade herdada, não duplicada.** A identidade vem de `docs/canon/Identity.md` e dos
   documentos canônicos da Kaline. A derivação offline referencia, não recria.
 
-## Componentes desta fase (PR 1)
+## Componentes implementados (v0.2)
 
-| Componente | Local | Papel nesta fase |
+| Componente | Local | Papel hoje |
 |---|---|---|
 | Runtime mode | `src/lib/local/runtime-mode.ts` | Declara `online`/`offline`; default `online`. |
 | Local config | `src/lib/local/local-config.ts` | Resolve a URL da API local (default `http://127.0.0.1:64113`). |
-| Model provider (tipos) | `src/lib/local/model-provider.types.ts` | Contrato mínimo de um provider de modelo. |
-| Model provider (mock) | `src/lib/local/model-provider.mock.ts` | Provider mockado, sem modelo real e sem token. |
-| Local API client | `src/lib/local/local-api-client.ts` | `checkLocalHealth()` com timeout curto. |
-| Local server | `local-server/` | Node + Fastify; `GET /health` em `127.0.0.1:64113`. |
+| Local API client | `src/lib/local/local-api-client.ts` | `checkLocalHealth()` + chamadas REST (chat, memória, testes de IA/transcrição). |
+| Model provider | `local-server/src/services/model-provider/` | mock (padrão), Ollama/Qwen real e status honesto; OpenRouter opcional. |
+| Transcrição | `local-server/src/services/transcription/` | whisper.cpp via `execFile` (sem shell), arquivo temporário sempre removido. |
+| Local server | `local-server/` | Node + Fastify; REST completa em `127.0.0.1:64113`. |
 
 ## Decisões técnicas registradas
 

@@ -3,6 +3,7 @@ import { newId } from "../utils/ids.js";
 import { nowIso } from "../utils/dates.js";
 import { MODEL_CONFIG } from "../config.js";
 import { ollamaChat, OllamaError } from "./model-provider/ollama.js";
+import { logger } from "../utils/logger.js";
 
 export const FACETS = ["kaline", "kharis", "kuanyin", "coder"] as const;
 export type Facet = (typeof FACETS)[number];
@@ -133,24 +134,20 @@ async function generateAssistantReply(
         { role: "user", content: userMessage },
       ],
     });
-    console.log(
-      JSON.stringify({
-        provider: "ollama",
-        model: MODEL_CONFIG.ollama.models.general,
-        durationMs: Date.now() - startedAt,
-        success: true,
-      }),
-    );
+    logger.info({
+      provider: "ollama",
+      model: MODEL_CONFIG.ollama.models.general,
+      durationMs: Date.now() - startedAt,
+      success: true,
+    });
     return { content: result.text, metadata: { provider: "ollama", fallback: false } };
   } catch (err) {
-    console.error(
-      JSON.stringify({
-        provider: "ollama",
-        model: MODEL_CONFIG.ollama.models.general,
-        durationMs: Date.now() - startedAt,
-        success: false,
-      }),
-    );
+    logger.error({
+      provider: "ollama",
+      model: MODEL_CONFIG.ollama.models.general,
+      durationMs: Date.now() - startedAt,
+      success: false,
+    });
     const message = err instanceof OllamaError ? err.message : "Falha ao consultar o Ollama.";
 
     if (!MODEL_CONFIG.fallbackToMock) {
