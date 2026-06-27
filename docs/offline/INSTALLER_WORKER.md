@@ -44,8 +44,10 @@ Cada camada tem uma responsabilidade e só uma:
 | `GET /install/windows.ps1`          | bootstrap Windows em PowerShell                            |
 | `GET /health`                       | `{ "ok": true, "service": "kaline-installer-worker", "mode": "public-installer-portal" }` |
 
-Tudo o que não bate com essas rotas é resolvido pelas Static Assets do
-Worker (binding `ASSETS`, diretório `public/`).
+`public/index.html` e os arquivos em `install/` são embutidos como texto puro
+no Worker (regra `Text` em `wrangler.toml`) — sem Static Assets, de propósito:
+algumas contas Cloudflare bloqueiam (403) a criação de Workers novos que usam
+esse binding. Qualquer rota fora da tabela acima recebe `404`.
 
 ## Rodar o Worker localmente
 
@@ -74,9 +76,9 @@ npm run deploy        # wrangler deploy
 ```
 
 O `name` do Worker e o `compatibility_date` estão em `wrangler.toml`. Ajuste
-o `name` se o nome já estiver em uso na sua conta Cloudflare. Não é
-necessário nenhum binding além de `ASSETS` (Static Assets) — o portal não
-usa KV, D1, R2, Durable Objects ou variáveis de ambiente sensíveis.
+o `name` se o nome já estiver em uso na sua conta Cloudflare. Não é necessário
+nenhum binding — o portal não usa KV, D1, R2, Durable Objects, Static Assets
+ou variáveis de ambiente sensíveis.
 
 ## Como baixar e usar os instaladores
 

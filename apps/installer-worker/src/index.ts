@@ -1,20 +1,17 @@
 // Portal Instalador da Kaline Offline — Worker público.
 //
-// Este Worker só entrega arquivos públicos: o HTML do portal (via Static
-// Assets, em public/) e os bootstraps de instalação (importados como texto
-// puro de install/*, sem duplicar o conteúdo em public/install/*).
+// Este Worker só entrega arquivos públicos: o HTML do portal e os bootstraps
+// de instalação, todos importados como texto puro (sem Static Assets — ver
+// nota abaixo) de public/ e install/*.
 //
 // O Worker NUNCA instala nada, nunca executa nada no computador do usuário e
 // nunca se comunica com a Kaline local (127.0.0.1:64113). Não recebe nem lê
 // tokens, áudio, banco de dados ou chaves.
+import portalHtml from "../public/index.html";
 import linuxMintSh from "../install/kaline-installer-linux-mint.sh";
 import linuxMintDesktop from "../install/kaline-installer-linux-mint.desktop";
 import windowsBat from "../install/kaline-installer-windows.bat";
 import windowsPs1 from "../install/kaline-installer-windows.ps1";
-
-export interface Env {
-  ASSETS: Fetcher;
-}
 
 interface BootstrapRoute {
   body: string;
@@ -46,7 +43,7 @@ const BOOTSTRAP_ROUTES: Record<string, BootstrapRoute> = {
 };
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === "/health") {
@@ -68,8 +65,15 @@ export default {
       });
     }
 
-    // Tudo o mais (incluindo "/" → public/index.html) é resolvido pelos
-    // Static Assets do Worker.
-    return env.ASSETS.fetch(request);
+    if (url.pathname === "/" || url.pathname === "/index.html") {
+      return new Response(portalHtml, {
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "public, max-age=60",
+        },
+      });
+    }
+
+    return new Response("Not found", { status: 404 });
   },
 };
