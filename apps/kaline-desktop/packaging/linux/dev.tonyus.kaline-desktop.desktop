@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=K∧LINE
+Comment=Abre a Kaline Offline (PWA completo)
+Exec=kaline-desktop
+Icon=kaline-desktop
+Terminal=false
+Categories=Utility;
+StartupWMClass=kaline-desktop

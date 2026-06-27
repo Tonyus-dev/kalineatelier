@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Janelinha da Kaline
+Comment=Abre a janelinha flutuante (always-on-top) para falar com a Kaline ou gravar reunião
+Exec=kaline-desktop --janelinha
+Icon=kaline-desktop
+Terminal=false
+Categories=Utility;
+StartupWMClass=kaline-desktop
