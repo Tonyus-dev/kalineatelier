@@ -249,6 +249,10 @@ export function listLocalSettings() {
   return localApiRequest<{ settings: unknown[] }>("/settings");
 }
 
+export function getLocalSetting(key: string) {
+  return localApiRequest<{ value: unknown }>(`/settings/${encodeURIComponent(key)}`);
+}
+
 export function putLocalSetting(key: string, value: unknown) {
   return localApiRequest<{ setting: unknown }>(`/settings/${encodeURIComponent(key)}`, {
     method: "PUT",
