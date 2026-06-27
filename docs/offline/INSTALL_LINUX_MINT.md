@@ -18,6 +18,22 @@ Nada disso é "a Kaline" em si — são só lançadores e processos de sistema
 operacional. A inteligência roda dentro do local-server, falando só com
 `127.0.0.1`.
 
+## Caminho mais rápido: portal instalador
+
+Se você ainda não tem o repositório, o Portal Instalador da Kaline Offline
+(`apps/installer-worker/`, ver `docs/offline/INSTALLER_WORKER.md`) entrega um
+bootstrap pequeno que localiza ou clona o repositório e já chama o passo 3
+abaixo por você:
+
+```bash
+curl -fsSL https://SEU-WORKER.workers.dev/install/linux-mint.sh -o install-kaline.sh
+less install-kaline.sh   # revise antes de executar (recomendado)
+bash install-kaline.sh
+```
+
+O restante deste guia continua valendo — o bootstrap só evita o passo manual
+de clonar o repositório.
+
 ## Passo a passo
 
 1. Baixe o repositório (`git clone ...` ou `gh repo clone Tonyus-dev/kalineatelier`)
@@ -70,5 +86,6 @@ O instalador e os scripts de start/stop/check nunca:
 - tocam no painel do Xfce sem fazer backup do estado atual primeiro, e nunca
   removem itens existentes do seu painel.
 
-Veja também `docs/offline/DESKTOP_COMPANION.md` (companion Tauri) e
-`docs/offline/TROUBLESHOOTING_LINUX_MINT.md`.
+Veja também `docs/offline/DESKTOP_COMPANION.md` (companion Tauri),
+`docs/offline/TROUBLESHOOTING_LINUX_MINT.md` e, para problemas específicos
+do bootstrap baixado pelo portal, `docs/offline/TROUBLESHOOTING_INSTALLER.md`.
