@@ -1,1 +1,0 @@
-ALTER TABLE public.reunioes ADD COLUMN IF NOT EXISTS infografico_url text;
