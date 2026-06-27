@@ -26,20 +26,27 @@ export type InboxEventRow = {
 
 export function createInboxEvent(
   db: Database.Database,
-  input: { source: string; type: string; title?: string | null; payload?: unknown },
+  input: {
+    source: string;
+    type: string;
+    title?: string | null;
+    payload?: unknown;
+    trustLevel?: TrustLevel;
+  },
 ): InboxEventRow {
   const id = newId();
   const now = nowIso();
   db.prepare(
     `INSERT INTO inbox_events
        (id, source, type, title, payload_json, trust_level, status, received_at, processed_at, error, metadata_json)
-     VALUES (@id, @source, @type, @title, @payload_json, 'local', 'pending', @now, NULL, NULL, NULL)`,
+     VALUES (@id, @source, @type, @title, @payload_json, @trust_level, 'pending', @now, NULL, NULL, NULL)`,
   ).run({
     id,
     source: input.source,
     type: input.type,
     title: input.title ?? null,
     payload_json: JSON.stringify(input.payload),
+    trust_level: input.trustLevel ?? "local",
     now,
   });
   return db.prepare("SELECT * FROM inbox_events WHERE id = ?").get(id) as InboxEventRow;

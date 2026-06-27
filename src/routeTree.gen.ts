@@ -32,6 +32,7 @@ import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedChatIndexRouteImport } from './routes/_authenticated/chat.index'
 import { Route as ApiPublicReadyRouteImport } from './routes/api/public/ready'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
+import { Route as ApiBridgeOlharDeKairosRouteImport } from './routes/api/bridge/olhar-de-kairos'
 import { Route as AuthenticatedTrilhaThreadIdRouteImport } from './routes/_authenticated/trilha.$threadId'
 import { Route as AuthenticatedChatThreadIdRouteImport } from './routes/_authenticated/chat.$threadId'
 
@@ -151,6 +152,11 @@ const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
   path: '/api/public/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBridgeOlharDeKairosRoute = ApiBridgeOlharDeKairosRouteImport.update({
+  id: '/api/bridge/olhar-de-kairos',
+  path: '/api/bridge/olhar-de-kairos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedTrilhaThreadIdRoute =
   AuthenticatedTrilhaThreadIdRouteImport.update({
     id: '/trilha/$threadId',
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/api/tts': typeof ApiTtsRoute
   '/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
   '/trilha/$threadId': typeof AuthenticatedTrilhaThreadIdRoute
+  '/api/bridge/olhar-de-kairos': typeof ApiBridgeOlharDeKairosRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/ready': typeof ApiPublicReadyRoute
   '/chat/': typeof AuthenticatedChatIndexRoute
@@ -212,6 +219,7 @@ export interface FileRoutesByTo {
   '/api/tts': typeof ApiTtsRoute
   '/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
   '/trilha/$threadId': typeof AuthenticatedTrilhaThreadIdRoute
+  '/api/bridge/olhar-de-kairos': typeof ApiBridgeOlharDeKairosRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/ready': typeof ApiPublicReadyRoute
   '/chat': typeof AuthenticatedChatIndexRoute
@@ -240,6 +248,7 @@ export interface FileRoutesById {
   '/api/tts': typeof ApiTtsRoute
   '/_authenticated/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
   '/_authenticated/trilha/$threadId': typeof AuthenticatedTrilhaThreadIdRoute
+  '/api/bridge/olhar-de-kairos': typeof ApiBridgeOlharDeKairosRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/ready': typeof ApiPublicReadyRoute
   '/_authenticated/chat/': typeof AuthenticatedChatIndexRoute
@@ -268,6 +277,7 @@ export interface FileRouteTypes {
     | '/api/tts'
     | '/chat/$threadId'
     | '/trilha/$threadId'
+    | '/api/bridge/olhar-de-kairos'
     | '/api/public/health'
     | '/api/public/ready'
     | '/chat/'
@@ -294,6 +304,7 @@ export interface FileRouteTypes {
     | '/api/tts'
     | '/chat/$threadId'
     | '/trilha/$threadId'
+    | '/api/bridge/olhar-de-kairos'
     | '/api/public/health'
     | '/api/public/ready'
     | '/chat'
@@ -321,6 +332,7 @@ export interface FileRouteTypes {
     | '/api/tts'
     | '/_authenticated/chat/$threadId'
     | '/_authenticated/trilha/$threadId'
+    | '/api/bridge/olhar-de-kairos'
     | '/api/public/health'
     | '/api/public/ready'
     | '/_authenticated/chat/'
@@ -336,6 +348,7 @@ export interface RootRouteChildren {
   ApiGenerateInfograficoRoute: typeof ApiGenerateInfograficoRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiTtsRoute: typeof ApiTtsRoute
+  ApiBridgeOlharDeKairosRoute: typeof ApiBridgeOlharDeKairosRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicReadyRoute: typeof ApiPublicReadyRoute
 }
@@ -503,6 +516,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/bridge/olhar-de-kairos': {
+      id: '/api/bridge/olhar-de-kairos'
+      path: '/api/bridge/olhar-de-kairos'
+      fullPath: '/api/bridge/olhar-de-kairos'
+      preLoaderRoute: typeof ApiBridgeOlharDeKairosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/trilha/$threadId': {
       id: '/_authenticated/trilha/$threadId'
       path: '/trilha/$threadId'
@@ -567,6 +587,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGenerateInfograficoRoute: ApiGenerateInfograficoRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   ApiTtsRoute: ApiTtsRoute,
+  ApiBridgeOlharDeKairosRoute: ApiBridgeOlharDeKairosRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicReadyRoute: ApiPublicReadyRoute,
 }

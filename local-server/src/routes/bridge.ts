@@ -1,13 +1,16 @@
 /**
- * Rota GET /bridge/status — estado da ponte com a nuvem (tunnel-ready).
+ * Rotas da ponte com a nuvem (Olhar de Kairós).
  *
- * Não implementa pull, push ou túnel real. Ver docs/offline/TUNNEL_READY.md.
- * A Kaline Local não recebe comandos abertos da internet: a ponte futura usará
- * inbox/envelopes/revisão, nunca escrita automática no Jardim.
+ * GET /bridge/status nunca conecta a nada — só relata configuração, honestamente.
+ * POST /bridge/pull só funciona com KALINE_TUNNEL_MODE=pull_only e só deposita
+ * envelopes `untrusted` em inbox_events — nunca escreve em Registro Vivo, Jardim,
+ * Sedimentos ou Decisões. Ver docs/offline/TUNNEL_READY.md.
  */
 
 import type { FastifyInstance } from "fastify";
-import { BRIDGE_CONFIG } from "../config.js";
+import { BRIDGE_CONFIG, BRIDGE_STATE } from "../config.js";
+import { getDb } from "../db/connection.js";
+import { pullOlharDeKairos } from "../services/kairos-bridge.service.js";
 
 export async function registerBridgeRoutes(app: FastifyInstance): Promise<void> {
   app.get("/bridge/status", async () => {
@@ -17,8 +20,19 @@ export async function registerBridgeRoutes(app: FastifyInstance): Promise<void> 
       deviceIdConfigured: BRIDGE_CONFIG.deviceId !== "",
       cloudBridgeConfigured: BRIDGE_CONFIG.cloudBridgeUrl !== "",
       bridgePublicKeyConfigured: BRIDGE_CONFIG.bridgePublicKey !== "",
-      lastCloudCheckAt: BRIDGE_CONFIG.lastCloudCheckAt,
-      message: "Ponte com nuvem ainda não implementada. Modo tunnel-ready está desativado.",
+      bridgeSharedKeyConfigured: BRIDGE_CONFIG.bridgeSharedKey !== "",
+      lastCloudCheckAt: BRIDGE_STATE.lastCloudCheckAt,
+      lastError: BRIDGE_STATE.lastError,
+      message:
+        BRIDGE_CONFIG.tunnelMode === "disabled"
+          ? "Ponte com nuvem desativada. Modo tunnel-ready está desativado por padrão."
+          : "Olhar de Kairós configurado. Use POST /bridge/pull para puxar o snapshot sob demanda.",
     };
+  });
+
+  app.post("/bridge/pull", async (_req, reply) => {
+    const result = await pullOlharDeKairos(getDb());
+    if (!result.ok) return reply.code(400).send({ ok: false, error: result.error });
+    return { ok: true, eventsCreated: result.eventsCreated };
   });
 }

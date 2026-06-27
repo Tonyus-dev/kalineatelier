@@ -144,8 +144,16 @@ export const BRIDGE_CONFIG = {
   deviceId: env("KALINE_DEVICE_ID", ""),
   cloudBridgeUrl: env("KALINE_CLOUD_BRIDGE_URL", ""),
   bridgePublicKey: env("KALINE_BRIDGE_PUBLIC_KEY", ""),
-  lastCloudCheckAt: null as string | null,
+  bridgeSharedKey: env("KALINE_BRIDGE_SHARED_KEY", ""),
+  bridgeUserToken: env("KALINE_BRIDGE_USER_TOKEN", ""),
 } as const;
+
+// Estado mutável da ponte (separado de BRIDGE_CONFIG, que é só configuração estática).
+// Atualizado pelo serviço do Olhar de Kairós a cada tentativa de pull, sucesso ou erro.
+export const BRIDGE_STATE = {
+  lastCloudCheckAt: null as string | null,
+  lastError: null as string | null,
+};
 
 export const CORS_ALLOWED_ORIGINS = env(
   "KALINE_CORS_ALLOWED_ORIGINS",

@@ -400,10 +400,30 @@ export type LocalBridgeStatus = {
   deviceIdConfigured: boolean;
   cloudBridgeConfigured: boolean;
   bridgePublicKeyConfigured: boolean;
+  bridgeSharedKeyConfigured: boolean;
   lastCloudCheckAt: string | null;
+  lastError: string | null;
   message: string;
 };
 
 export function getLocalBridgeStatus() {
   return localApiRequest<LocalBridgeStatus>("/bridge/status");
+}
+
+export type LocalBridgePullResult =
+  | { ok: true; eventsCreated: number }
+  | { ok: false; error: string };
+
+export async function pullLocalBridge(): Promise<LocalBridgePullResult> {
+  try {
+    const res = await fetch(localApiUrl("/bridge/pull"), { method: "POST" });
+    const body = await res.json();
+    if (!res.ok) return { ok: false, error: body?.error ?? `API local respondeu ${res.status}.` };
+    return { ok: true, eventsCreated: body.eventsCreated };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Falha ao puxar o Olhar de Kairós.",
+    };
+  }
 }
