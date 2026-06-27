@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { checkLocalHealth } from "@/lib/local/local-api-client";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AtelierProvider, useAtelier } from "@/components/atelier/AtelierContext";
 import { AtelierChat } from "@/components/atelier/AtelierChat";
 import { AtelierRegistro } from "@/components/atelier/AtelierRegistro";
 import { AtelierJardim } from "@/components/atelier/AtelierJardim";
@@ -12,30 +11,25 @@ import { AtelierRelatorios } from "@/components/atelier/AtelierRelatorios";
 import { AtelierConfiguracoes } from "@/components/atelier/AtelierConfiguracoes";
 import { AtelierPinGate } from "@/components/atelier/AtelierPinGate";
 
-export const Route = createFileRoute("/atelier")({ component: AtelierPage });
+export const Route = createFileRoute("/atelier")({
+  component: () => (
+    <AtelierProvider>
+      <AtelierPage />
+    </AtelierProvider>
+  ),
+});
 
 function StatusBadge() {
-  const { data } = useQuery({
-    queryKey: ["atelier", "health"],
-    queryFn: () => checkLocalHealth(),
-    refetchInterval: 10_000,
-  });
+  const { health, isLoading } = useAtelier();
 
-  if (!data) return <Badge variant="secondary">verificando…</Badge>;
-  if (data.ok) {
-    return <Badge>API local online · {data.mode}</Badge>;
-  }
+  if (isLoading && !health) return <Badge variant="secondary">verificando…</Badge>;
+  if (health?.ok) return <Badge>API local online · {health.mode}</Badge>;
   return <Badge variant="destructive">API local indisponível</Badge>;
 }
 
 function AtelierPage() {
   const [unlocked, setUnlocked] = useState(false);
-  const { data: health } = useQuery({
-    queryKey: ["atelier", "health"],
-    queryFn: () => checkLocalHealth(),
-    refetchInterval: 10_000,
-  });
-  const offline = !health?.ok;
+  const { offline } = useAtelier();
 
   return (
     <div className="mx-auto max-w-4xl p-4 space-y-4">
@@ -75,22 +69,22 @@ function AtelierPage() {
             <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
           </TabsList>
           <TabsContent value="chat">
-            <AtelierChat disabled={offline} />
+            <AtelierChat />
           </TabsContent>
           <TabsContent value="registro">
-            <AtelierRegistro disabled={offline} />
+            <AtelierRegistro />
           </TabsContent>
           <TabsContent value="jardim">
-            <AtelierJardim disabled={offline} />
+            <AtelierJardim />
           </TabsContent>
           <TabsContent value="revisao">
-            <AtelierRevisao disabled={offline} />
+            <AtelierRevisao />
           </TabsContent>
           <TabsContent value="relatorios">
-            <AtelierRelatorios disabled={offline} />
+            <AtelierRelatorios />
           </TabsContent>
           <TabsContent value="configuracoes">
-            <AtelierConfiguracoes disabled={offline} />
+            <AtelierConfiguracoes />
           </TabsContent>
         </Tabs>
       )}

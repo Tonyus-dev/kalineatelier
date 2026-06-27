@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listLocalSettings, putLocalSetting } from "@/lib/local/local-api-client";
+import { ATELIER_QUERY_KEYS } from "@/lib/local/query-keys";
 import { hashPin } from "@/lib/local/pin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,7 @@ export function AtelierPinGate({ onUnlock }: { onUnlock: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   const settingsQuery = useQuery({
-    queryKey: ["atelier", "settings"],
+    queryKey: ATELIER_QUERY_KEYS.settings,
     queryFn: async () => (await listLocalSettings()).settings as AtelierSetting[],
   });
 
@@ -29,7 +30,7 @@ export function AtelierPinGate({ onUnlock }: { onUnlock: () => void }) {
       return putLocalSetting(PIN_SETTING_KEY, hash);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["atelier", "settings"] });
+      queryClient.invalidateQueries({ queryKey: ATELIER_QUERY_KEYS.settings });
       onUnlock();
     },
   });

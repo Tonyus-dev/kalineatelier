@@ -5,6 +5,10 @@ import {
   createLocalRegistro,
   archiveLocalRegistro,
 } from "@/lib/local/local-api-client";
+import { ATELIER_QUERY_KEYS } from "@/lib/local/query-keys";
+import { REGISTRO_KINDS } from "@/lib/local/registro-kinds";
+import { useAtelier } from "./AtelierContext";
+import { AtelierAsync } from "./atelier-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,42 +22,34 @@ import {
 } from "@/components/ui/select";
 import type { AtelierRegistro as AtelierRegistroRow } from "./types";
 
-const KINDS = [
-  "nota",
-  "evento",
-  "sentimento",
-  "ideia",
-  "dor",
-  "ganho",
-  "sonho",
-  "pergunta",
-  "decisao",
-];
-
-export function AtelierRegistro({ disabled }: { disabled: boolean }) {
+export function AtelierRegistro() {
+  const { offline: disabled } = useAtelier();
   const queryClient = useQueryClient();
-  const [kind, setKind] = useState(KINDS[0]);
+  const [kind, setKind] = useState<string>(REGISTRO_KINDS[0]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
   const registrosQuery = useQuery({
-    queryKey: ["atelier", "registros"],
+    queryKey: ATELIER_QUERY_KEYS.registros,
     queryFn: async () => (await listLocalRegistros()).registros as AtelierRegistroRow[],
     enabled: !disabled,
   });
+
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ATELIER_QUERY_KEYS.registros });
 
   const create = useMutation({
     mutationFn: () => createLocalRegistro({ kind, title, content }),
     onSuccess: () => {
       setTitle("");
       setContent("");
-      queryClient.invalidateQueries({ queryKey: ["atelier", "registros"] });
+      invalidate();
     },
   });
 
   const archive = useMutation({
     mutationFn: (id: string) => archiveLocalRegistro(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["atelier", "registros"] }),
+    onSuccess: invalidate,
   });
 
   const registros = registrosQuery.data ?? [];
@@ -70,7 +66,7 @@ export function AtelierRegistro({ disabled }: { disabled: boolean }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {KINDS.map((k) => (
+              {REGISTRO_KINDS.map((k) => (
                 <SelectItem key={k} value={k}>
                   {k}
                 </SelectItem>
@@ -90,6 +86,11 @@ export function AtelierRegistro({ disabled }: { disabled: boolean }) {
           disabled={disabled}
           onChange={(e) => setContent(e.target.value)}
         />
+        {create.error && (
+          <p className="text-xs text-destructive">
+            Não foi possível salvar: {(create.error as Error).message}
+          </p>
+        )}
         <Button
           size="sm"
           disabled={disabled || !title.trim() || !content.trim() || create.isPending}
@@ -99,27 +100,29 @@ export function AtelierRegistro({ disabled }: { disabled: boolean }) {
         </Button>
 
         <div className="space-y-2 max-h-96 overflow-auto">
-          {registros.map((r) => (
-            <div key={r.id} className="flex items-start justify-between gap-2 rounded border p-2">
-              <div>
-                <p className="text-sm font-medium">
-                  [{r.kind}] {r.title}
-                </p>
-                <p className="text-sm text-muted-foreground">{r.content}</p>
+          <AtelierAsync isLoading={registrosQuery.isLoading} error={registrosQuery.error}>
+            {registros.map((r) => (
+              <div key={r.id} className="flex items-start justify-between gap-2 rounded border p-2">
+                <div>
+                  <p className="text-sm font-medium">
+                    [{r.kind}] {r.title}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{r.content}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={disabled || archive.isPending}
+                  onClick={() => archive.mutate(r.id)}
+                >
+                  Arquivar
+                </Button>
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={disabled || archive.isPending}
-                onClick={() => archive.mutate(r.id)}
-              >
-                Arquivar
-              </Button>
-            </div>
-          ))}
-          {registros.length === 0 && (
-            <p className="text-xs text-muted-foreground">Nenhum registro ainda.</p>
-          )}
+            ))}
+            {registros.length === 0 && (
+              <p className="text-xs text-muted-foreground">Nenhum registro ainda.</p>
+            )}
+          </AtelierAsync>
         </div>
       </CardContent>
     </Card>

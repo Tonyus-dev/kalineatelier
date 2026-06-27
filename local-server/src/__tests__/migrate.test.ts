@@ -8,9 +8,9 @@ test("runMigrations é idempotente (roda duas vezes sem erro)", () => {
   runMigrations(db);
   assert.doesNotThrow(() => runMigrations(db));
 
-  const tables = db
-    .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
-    .all() as Array<{ name: string }>;
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as Array<{
+    name: string;
+  }>;
   const names = tables.map((t) => t.name);
   for (const expected of ["chat_threads", "registro_vivo", "jardim_memorias", "sedimentos"]) {
     assert.ok(names.includes(expected), `tabela ${expected} deveria existir`);
