@@ -9,7 +9,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
-import { HOST, PORT, CORS_ALLOWED_ORIGINS } from "./config.js";
+import { HOST, PORT, CORS_ALLOWED_ORIGINS, BRIDGE_CONFIG } from "./config.js";
 import { getDb, closeDb } from "./db/connection.js";
 import { runMigrations } from "./db/migrate.js";
 import { registerHealthRoute } from "./routes/health.js";
@@ -31,6 +31,34 @@ import { registerTtsRoutes } from "./routes/tts.js";
 import { registerMeetingsRoutes } from "./routes/meetings.js";
 
 runMigrations(getDb());
+
+if (BRIDGE_CONFIG.bridgeSharedKeyWasGenerated) {
+  console.log(
+    [
+      "",
+      "================================================================",
+      "  Olhar de Kairós — chave de pareamento gerada automaticamente",
+      "================================================================",
+      "",
+      "  Nenhuma KALINE_BRIDGE_SHARED_KEY foi configurada, então a Kaline",
+      "  Local gerou uma chave nova e a salvou em:",
+      `    ${BRIDGE_CONFIG.bridgeSharedKeyPath}`,
+      "",
+      "  Para o app online (Totalidade) conseguir trocar o Olhar de Kairós",
+      "  com este device, copie o valor abaixo e configure-o como",
+      "  KALINE_BRIDGE_SHARED_KEY no lado online (em produção, como secret",
+      "  real — ex.: `wrangler secret put KALINE_BRIDGE_SHARED_KEY`):",
+      "",
+      `    ${BRIDGE_CONFIG.bridgeSharedKey}`,
+      "",
+      "  Essa chave fica salva e é reaproveitada nos próximos starts — não",
+      "  é preciso repetir este passo, a menos que reinstale a Kaline Local",
+      "  do zero ou queira parear com a mesma chave de outro device.",
+      "================================================================",
+      "",
+    ].join("\n"),
+  );
+}
 
 const app = Fastify({ logger: true });
 
