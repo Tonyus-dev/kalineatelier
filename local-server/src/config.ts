@@ -42,6 +42,12 @@ function env(key: string, fallback: string): string {
   return value === undefined || value === "" ? fallback : value;
 }
 
+function envBool(key: string, fallback: boolean): boolean {
+  const value = process.env[key];
+  if (value === undefined || value === "") return fallback;
+  return value.toLowerCase() === "true";
+}
+
 export const HOST = env("KALINE_LOCAL_HOST", "127.0.0.1");
 export const PORT = Number(env("KALINE_LOCAL_PORT", "64113"));
 
@@ -77,24 +83,59 @@ export const MODEL_CONFIG = {
     },
   },
   ollama: {
+    enabled: envBool("OLLAMA_ENABLED", true),
     baseUrl: env("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
     models: {
-      general: env("OLLAMA_MODEL_GENERAL", "qwen3.5:0.8b"),
+      general: env("OLLAMA_MODEL_GENERAL", "llama3.2:1b"),
+      router: env("OLLAMA_MODEL_ROUTER", "llama3.2:1b"),
+      summary: env("OLLAMA_MODEL_SUMMARY", "llama3.2:1b"),
+      reasoning: env("OLLAMA_MODEL_REASONING", "llama3.2:1b"),
+      textFallback: env("OLLAMA_MODEL_TEXT_FALLBACK", "qwen2.5:1.5b"),
+      vision: env("OLLAMA_MODEL_VISION", "qwen3.5:2b"),
+      visionFallback: env("OLLAMA_MODEL_VISION_FALLBACK", "qwen3.5:0.8b"),
       coder: env("OLLAMA_MODEL_CODER", "qwen3.5:0.8b"),
-      summary: env("OLLAMA_MODEL_SUMMARY", "qwen2.5:0.5b"),
-      vision: env("OLLAMA_MODEL_VISION", "qwen3.5:0.8b"),
     },
     requestTimeoutMs: Number(env("OLLAMA_REQUEST_TIMEOUT_MS", "120000")),
   },
 } as const;
 
+export const VISION_CONFIG = {
+  enabled: envBool("VISION_ENABLED", true),
+  experimental: envBool("VISION_EXPERIMENTAL", true),
+  warning:
+    "Visão local é experimental e não deve ser usada como conclusão final em documentos sensíveis.",
+} as const;
+
+export const GOVERNANCE_CONFIG = {
+  criticalDomainRequiresSource: envBool("CRITICAL_DOMAIN_REQUIRES_SOURCE", true),
+  noSourceMessage:
+    "Este tema exige fonte verificável. Não encontrei base suficiente para responder com segurança.",
+} as const;
+
 export const TRANSCRIPTION_CONFIG = {
   provider: env("KALINE_TRANSCRIBE_PROVIDER", "whisper_cpp"),
   whisperCpp: {
+    enabled: envBool("WHISPER_ENABLED", true),
+    engine: env("WHISPER_ENGINE", "whisper.cpp"),
+    modelSize: env("WHISPER_MODEL", "small"),
     bin: env("WHISPER_CPP_BIN", ""),
-    model: env("WHISPER_CPP_MODEL", ""),
+    modelPath: env("WHISPER_MODEL_PATH", ""),
     language: env("WHISPER_LANGUAGE", "pt"),
     requestTimeoutMs: Number(env("WHISPER_REQUEST_TIMEOUT_MS", "180000")),
+  },
+} as const;
+
+export const TTS_CONFIG = {
+  provider: env("TTS_PROVIDER", "kokoro"),
+  kokoro: {
+    enabled: envBool("KOKORO_ENABLED", true),
+    engine: env("KOKORO_ENGINE", "onnx"),
+    model: env("KOKORO_MODEL", "kokoro-82m"),
+    modelPath: env("KOKORO_MODEL_PATH", ""),
+    voicesPath: env("KOKORO_VOICES_PATH", ""),
+    defaultVoice: env("KOKORO_DEFAULT_VOICE", "pf_dora"),
+    defaultLang: env("KOKORO_DEFAULT_LANG", "pt-br"),
+    defaultSpeed: Number(env("KOKORO_DEFAULT_SPEED", "1.0")),
   },
 } as const;
 

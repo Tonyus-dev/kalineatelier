@@ -237,9 +237,27 @@ export type LocalModelStatus = {
   configured: boolean;
   fallbackToMock: boolean;
   message: string;
+  status?: string;
   available?: boolean;
   baseUrl?: string;
   models?: Record<string, string | { name: string; available: boolean }>;
+  vision?: {
+    enabled: boolean;
+    experimental: boolean;
+    primaryModel: string;
+    fallbackModel: string;
+    warning: string;
+  };
+  tts?: {
+    provider: string;
+    status: string;
+    enabled: boolean;
+    engine?: string;
+    model?: string;
+    voice?: string;
+    lang?: string;
+    message: string;
+  };
 };
 
 export function getLocalModelStatus() {
@@ -309,16 +327,35 @@ export type LocalTranscribeStatus =
   | {
       ok: boolean;
       provider: "whisper_cpp";
+      status: string;
       available: true;
       bin: string;
       model: string;
       language: string;
       message: string;
     }
-  | { ok: boolean; provider: "whisper_cpp"; available: false; message: string };
+  | { ok: boolean; provider: "whisper_cpp"; status: string; available: false; message: string };
 
 export function getLocalTranscribeStatus() {
   return localApiRequest<LocalTranscribeStatus>("/transcribe/status");
+}
+
+export type LocalTtsStatus =
+  | {
+      ok: boolean;
+      provider: string;
+      status: string;
+      enabled: true;
+      engine: string;
+      model: string;
+      voice: string;
+      lang: string;
+      message: string;
+    }
+  | { ok: boolean; provider: string; status: string; enabled: false; message: string };
+
+export function getLocalTtsStatus() {
+  return localApiRequest<LocalTtsStatus>("/tts/status");
 }
 
 export type LocalTranscribeResult =

@@ -5,9 +5,10 @@
 
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { MODEL_CONFIG } from "../config.js";
+import { MODEL_CONFIG, VISION_CONFIG } from "../config.js";
 import { getModelStatus, getRealModelStatus } from "../services/model-provider/status.js";
 import { ollamaChat, OllamaError } from "../services/model-provider/ollama.js";
+import { getTtsStatus } from "../services/tts/kokoro.js";
 
 const MAX_IMAGE_BASE64_CHARS = 8_000_000; // ~6 MB de imagem decodificada
 
@@ -24,7 +25,15 @@ function stripDataUrlPrefix(value: string): string {
 export async function registerModelRoutes(app: FastifyInstance): Promise<void> {
   app.get("/model/status", async () => {
     const real = await getRealModelStatus();
-    return { ok: true, ...getModelStatus(), ...real };
+    const vision = {
+      enabled: VISION_CONFIG.enabled,
+      experimental: VISION_CONFIG.experimental,
+      primaryModel: MODEL_CONFIG.ollama.models.vision,
+      fallbackModel: MODEL_CONFIG.ollama.models.visionFallback,
+      warning: VISION_CONFIG.warning,
+    };
+    const tts = getTtsStatus();
+    return { ok: true, ...getModelStatus(), ...real, vision, tts };
   });
 
   app.post("/model/vision", async (req, reply) => {

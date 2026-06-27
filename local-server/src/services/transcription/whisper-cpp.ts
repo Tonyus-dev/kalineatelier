@@ -6,11 +6,14 @@
 import { execFile } from "node:child_process";
 import fs from "node:fs";
 import { TRANSCRIPTION_CONFIG } from "../../config.js";
+import type { EngineStatusKind } from "../model-provider/types.js";
 
 export type TranscriptionStatus =
   | {
       provider: "whisper_cpp";
+      status: EngineStatusKind;
       available: true;
+      engine: string;
       bin: string;
       model: string;
       language: string;
@@ -18,34 +21,48 @@ export type TranscriptionStatus =
     }
   | {
       provider: "whisper_cpp";
+      status: EngineStatusKind;
       available: false;
       message: string;
     };
 
 export function getTranscriptionStatus(): TranscriptionStatus {
-  const { bin, model, language } = TRANSCRIPTION_CONFIG.whisperCpp;
+  const { enabled, engine, bin, modelPath, language } = TRANSCRIPTION_CONFIG.whisperCpp;
+
+  if (!enabled) {
+    return {
+      provider: "whisper_cpp",
+      status: "disabled",
+      available: false,
+      message: "Whisper desabilitado (WHISPER_ENABLED=false).",
+    };
+  }
 
   if (!bin || !fs.existsSync(bin)) {
     return {
       provider: "whisper_cpp",
+      status: "misconfigured",
       available: false,
       message: "WHISPER_CPP_BIN não encontrado. Configure o caminho do binário whisper-cli.",
     };
   }
 
-  if (!model || !fs.existsSync(model)) {
+  if (!modelPath || !fs.existsSync(modelPath)) {
     return {
       provider: "whisper_cpp",
+      status: "misconfigured",
       available: false,
-      message: "WHISPER_CPP_MODEL não encontrado.",
+      message: "WHISPER_MODEL_PATH não encontrado.",
     };
   }
 
   return {
     provider: "whisper_cpp",
+    status: "available",
     available: true,
+    engine,
     bin,
-    model,
+    model: modelPath,
     language: language || "pt",
     message: "Whisper.cpp configurado.",
   };

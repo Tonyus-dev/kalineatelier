@@ -134,17 +134,47 @@ async function main() {
         "Defina em local-server/.env para usar o Whisper local.",
       );
     }
-    if (env.WHISPER_CPP_MODEL) {
-      existsSync(env.WHISPER_CPP_MODEL)
-        ? ok(`WHISPER_CPP_MODEL encontrado (${env.WHISPER_CPP_MODEL})`)
+    if (env.WHISPER_MODEL_PATH) {
+      existsSync(env.WHISPER_MODEL_PATH)
+        ? ok(`WHISPER_MODEL_PATH encontrado (${env.WHISPER_MODEL_PATH})`)
         : fail(
-            "WHISPER_CPP_MODEL configurado, mas o arquivo não existe",
+            "WHISPER_MODEL_PATH configurado, mas o arquivo não existe",
             "Confirme o caminho do ggml-small.bin.",
           );
     } else {
       fail(
-        "WHISPER_CPP_MODEL não configurado",
+        "WHISPER_MODEL_PATH não configurado",
         "Defina em local-server/.env para usar o Whisper local.",
+      );
+    }
+  }
+
+  const ttsProvider = env.TTS_PROVIDER;
+  if (ttsProvider === "kokoro" && env.KOKORO_ENABLED !== "false") {
+    if (env.KOKORO_MODEL_PATH) {
+      existsSync(env.KOKORO_MODEL_PATH)
+        ? ok(`KOKORO_MODEL_PATH encontrado (${env.KOKORO_MODEL_PATH})`)
+        : fail(
+            "KOKORO_MODEL_PATH configurado, mas o arquivo não existe",
+            "Confirme o caminho do modelo Kokoro 82M (.onnx).",
+          );
+    } else {
+      fail(
+        "KOKORO_MODEL_PATH não configurado",
+        "Defina em local-server/.env para usar o Kokoro local.",
+      );
+    }
+    if (env.KOKORO_VOICES_PATH) {
+      existsSync(env.KOKORO_VOICES_PATH)
+        ? ok(`KOKORO_VOICES_PATH encontrado (${env.KOKORO_VOICES_PATH})`)
+        : fail(
+            "KOKORO_VOICES_PATH configurado, mas o arquivo não existe",
+            "Confirme o caminho do arquivo de voices do Kokoro.",
+          );
+    } else {
+      fail(
+        "KOKORO_VOICES_PATH não configurado",
+        "Defina em local-server/.env para usar o Kokoro local.",
       );
     }
   }

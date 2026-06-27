@@ -68,6 +68,17 @@ async function main() {
   }
 
   try {
+    const tts = await request("/tts/status");
+    record(
+      "GET /tts/status",
+      tts.status === 200 && tts.body?.ok === true && typeof tts.body?.status === "string",
+      JSON.stringify(tts.body),
+    );
+  } catch (err) {
+    record("GET /tts/status", false, String(err));
+  }
+
+  try {
     const chat = await request("/chat", {
       method: "POST",
       body: JSON.stringify({ message: "smoke test" }),
