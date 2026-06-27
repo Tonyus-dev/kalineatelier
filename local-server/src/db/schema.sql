@@ -94,6 +94,26 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS eventos (
+  id TEXT PRIMARY KEY,
+  titulo TEXT NOT NULL,
+  descricao TEXT,
+  tipo TEXT NOT NULL CHECK (tipo IN ('compromisso', 'aula', 'reuniao', 'evento', 'prazo', 'outro')),
+  inicio TEXT NOT NULL,
+  fim TEXT,
+  local TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_eventos_inicio ON eventos(inicio);
+
+-- Semáforo: estado único de presença/regime. Linha única (id fixo "current").
+CREATE TABLE IF NOT EXISTS presenca_regime (
+  id TEXT PRIMARY KEY CHECK (id = 'current'),
+  state TEXT NOT NULL CHECK (state IN ('green', 'yellow', 'blue', 'red')),
+  updated_at TEXT NOT NULL
+);
+
 -- Preparado para a ponte futura. Nesta fase só recebe eventos locais via API,
 -- sem criptografia, Worker ou sync.
 CREATE TABLE IF NOT EXISTS inbox_events (

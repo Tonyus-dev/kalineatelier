@@ -32,27 +32,27 @@ log ""
 
 # [1/4] Verificar GitHub CLI -------------------------------------------------
 log "[1/4] Verificando GitHub CLI (gh) ..."
+GH_USABLE=false
 if command -v gh >/dev/null 2>&1; then
   ok "gh encontrado: $(gh --version | head -n1)"
+  if gh auth status >/dev/null 2>&1; then
+    ok "gh já autenticado."
+    GH_USABLE=true
+  else
+    warn "gh está instalado, mas não autenticado."
+    log "Rode em outro terminal: gh auth login"
+    log "Nunca cole tokens neste site nem em scripts — use sempre 'gh auth login' interativo."
+    read -r -p "Já autenticou e quer continuar agora? [s/N] " resp
+    if [[ "$resp" =~ ^[sS]$ ]]; then
+      GH_USABLE=true
+    else
+      warn "Seguindo sem gh — vou tentar clonar via HTTPS diretamente (sem necessidade de autenticação para repositórios públicos)."
+    fi
+  fi
 else
   warn "gh (GitHub CLI) não encontrado."
-  log "Instale com: sudo apt install gh"
-  log "(ou veja https://github.com/cli/cli#installation para outras distros)"
-  log "Depois rode este script de novo."
-  exit 1
-fi
-
-if gh auth status >/dev/null 2>&1; then
-  ok "gh já autenticado."
-else
-  warn "gh está instalado, mas não autenticado."
-  log "Rode em outro terminal: gh auth login"
-  log "Nunca cole tokens neste site nem em scripts — use sempre 'gh auth login' interativo."
-  read -r -p "Já autenticou e quer continuar agora? [s/N] " resp
-  if [[ ! "$resp" =~ ^[sS]$ ]]; then
-    log "Saindo. Rode este script de novo após 'gh auth login'."
-    exit 1
-  fi
+  log "(opcional: sudo apt install gh — ou veja https://github.com/cli/cli#installation)"
+  log "Vou tentar clonar via HTTPS diretamente."
 fi
 
 # [2/4] Localizar ou clonar o repositório ------------------------------------
@@ -79,11 +79,23 @@ else
   if [[ "$resp" =~ ^[sS]$ ]]; then
     mkdir -p "$HOME/Kaline"
     cd "$HOME/Kaline" || exit 1
-    if gh repo clone "$REPO"; then
+    CLONED=false
+    if [ "$GH_USABLE" = true ] && gh repo clone "$REPO"; then
       ROOT_DIR="$HOME/Kaline/kalineatelier"
-      ok "Repositório clonado em $ROOT_DIR"
+      ok "Repositório clonado em $ROOT_DIR (via gh)"
+      CLONED=true
     else
-      err "Falha ao clonar $REPO. Verifique sua conexão e se você tem acesso ao repositório (gh auth status)."
+      if [ "$GH_USABLE" = true ]; then
+        warn "Clone via gh falhou — tentando via HTTPS diretamente."
+      fi
+      if git clone --depth 1 "https://github.com/${REPO}.git" "$HOME/Kaline/kalineatelier"; then
+        ROOT_DIR="$HOME/Kaline/kalineatelier"
+        ok "Repositório clonado em $ROOT_DIR (via HTTPS)"
+        CLONED=true
+      fi
+    fi
+    if [ "$CLONED" != true ]; then
+      err "Falha ao clonar $REPO (tanto via gh quanto via HTTPS). Verifique sua conexão e tente novamente."
       exit 1
     fi
   else

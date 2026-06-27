@@ -1,13 +1,13 @@
 // Hook do Semáforo de Presença.
-// - Estado (verde/amarelo/azul/vermelho) persiste no backend (uma linha por usuário).
+// - Estado (verde/amarelo/azul/vermelho) persiste no backend local (linha única).
 // - Nota efêmera fica só no dispositivo via localStorage (não vai pro banco).
 // - Nota é enviada ao chat junto com a mensagem (campo `presencaNota` no envelope).
 
 import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getLocalPresenca, setLocalPresenca, type LocalPresencaState } from "@/lib/local/local-api-client";
 
-export type PresencaState = "green" | "yellow" | "blue" | "red";
+export type PresencaState = LocalPresencaState;
 
 export const PRESENCA_META: Record<
   PresencaState,
@@ -43,11 +43,7 @@ export const PRESENCA_META: Record<
   },
 };
 
-const NOTA_KEY_PREFIX = "kaline:presenca-nota:";
-
-function getCurrentUserId(): Promise<string | null> {
-  return supabase.auth.getUser().then((r) => r.data.user?.id ?? null);
-}
+const NOTA_KEY = "kaline:presenca-nota";
 
 export function usePresencaRegime() {
   const qc = useQueryClient();
@@ -55,29 +51,15 @@ export function usePresencaRegime() {
   const stateQuery = useQuery({
     queryKey: ["presenca-regime"],
     queryFn: async (): Promise<PresencaState | null> => {
-      const userId = await getCurrentUserId();
-      if (!userId) return null;
-      const { data } = await supabase
-        .from("presenca_regimes")
-        .select("state")
-        .eq("user_id", userId)
-        .maybeSingle();
-      return (data?.state as PresencaState | undefined) ?? null;
+      const { presenca } = await getLocalPresenca();
+      return presenca?.state ?? null;
     },
     staleTime: 60_000,
   });
 
   const setState = useMutation({
     mutationFn: async (next: PresencaState) => {
-      const userId = await getCurrentUserId();
-      if (!userId) throw new Error("Não autenticado.");
-      const { error } = await supabase
-        .from("presenca_regimes")
-        .upsert(
-          { user_id: userId, state: next, updated_at: new Date().toISOString() },
-          { onConflict: "user_id" },
-        );
-      if (error) throw error;
+      await setLocalPresenca(next);
       return next;
     },
     onMutate: async (next) => {
@@ -98,25 +80,19 @@ export function usePresencaRegime() {
   const [nota, setNotaState] = useState<string>("");
 
   useEffect(() => {
-    (async () => {
-      const userId = await getCurrentUserId();
-      if (!userId) return;
-      try {
-        const v = localStorage.getItem(NOTA_KEY_PREFIX + userId);
-        if (v != null) setNotaState(v);
-      } catch {
-        // ignore
-      }
-    })();
+    try {
+      const v = localStorage.getItem(NOTA_KEY);
+      if (v != null) setNotaState(v);
+    } catch {
+      // ignore
+    }
   }, []);
 
   const setNota = useCallback(async (value: string) => {
     setNotaState(value);
-    const userId = await getCurrentUserId();
-    if (!userId) return;
     try {
-      if (value.trim()) localStorage.setItem(NOTA_KEY_PREFIX + userId, value);
-      else localStorage.removeItem(NOTA_KEY_PREFIX + userId);
+      if (value.trim()) localStorage.setItem(NOTA_KEY, value);
+      else localStorage.removeItem(NOTA_KEY);
     } catch {
       // ignore
     }
@@ -132,12 +108,10 @@ export function usePresencaRegime() {
 }
 
 // Leitura síncrona da nota efêmera (usada pelo composer do chat na hora de
-// enviar mensagem). Retorna string vazia se não houver sessão/nota.
+// enviar mensagem). Retorna string vazia se não houver nota.
 export async function readPresencaNota(): Promise<string> {
-  const userId = await getCurrentUserId();
-  if (!userId) return "";
   try {
-    return (localStorage.getItem(NOTA_KEY_PREFIX + userId) ?? "").slice(0, 280);
+    return (localStorage.getItem(NOTA_KEY) ?? "").slice(0, 280);
   } catch {
     return "";
   }

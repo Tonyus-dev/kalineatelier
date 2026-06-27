@@ -94,6 +94,10 @@ export function createLocalThread(input: { title?: string; facet: string }) {
   });
 }
 
+export function getLocalThread(threadId: string) {
+  return localApiRequest<{ thread: unknown }>(`/threads/${threadId}`);
+}
+
 export function listLocalMessages(threadId: string) {
   return localApiRequest<{ messages: unknown[] }>(`/messages/${threadId}`);
 }
@@ -229,6 +233,47 @@ export function putLocalSetting(key: string, value: unknown) {
 
 export function getLocalIdentity() {
   return localApiRequest<{ summary: string; sources: string[] }>("/identity");
+}
+
+export function listLocalEventos(opts: { from?: string; to?: string } = {}) {
+  const params = new URLSearchParams();
+  if (opts.from) params.set("from", opts.from);
+  if (opts.to) params.set("to", opts.to);
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return localApiRequest<{ eventos: unknown[] }>(`/eventos${query}`);
+}
+
+export function createLocalEvento(input: {
+  titulo: string;
+  tipo: string;
+  inicio: string;
+  fim?: string | null;
+  local?: string | null;
+  descricao?: string | null;
+}) {
+  return localApiRequest<{ evento: unknown }>("/eventos", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteLocalEvento(id: string) {
+  return localApiRequest<{ ok: true }>(`/eventos/${id}`, { method: "DELETE" });
+}
+
+export type LocalPresencaState = "green" | "yellow" | "blue" | "red";
+
+export function getLocalPresenca() {
+  return localApiRequest<{ presenca: { id: "current"; state: LocalPresencaState; updated_at: string } | null }>(
+    "/presenca",
+  );
+}
+
+export function setLocalPresenca(state: LocalPresencaState) {
+  return localApiRequest<{ presenca: { id: "current"; state: LocalPresencaState; updated_at: string } }>(
+    "/presenca",
+    { method: "PUT", body: JSON.stringify({ state }) },
+  );
 }
 
 export type LocalModelStatus = {

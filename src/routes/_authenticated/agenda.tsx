@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createLocalEvento, deleteLocalEvento, listLocalEventos } from "@/lib/local/local-api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -109,14 +109,15 @@ function AgendaPage() {
   async function load() {
     const ini = startOfMonth(cursor);
     const fim = addMonths(ini, 1);
-    const { data, error } = await supabase
-      .from("eventos")
-      .select("*")
-      .gte("inicio", ini.toISOString())
-      .lt("inicio", fim.toISOString())
-      .order("inicio", { ascending: true });
-    if (error) toast.error(error.message);
-    else setEventos((data ?? []) as Evento[]);
+    try {
+      const { eventos: rows } = await listLocalEventos({
+        from: ini.toISOString(),
+        to: fim.toISOString(),
+      });
+      setEventos(rows as Evento[]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao carregar agenda");
+    }
   }
   useEffect(() => {
     load(); /* eslint-disable-next-line */
@@ -167,12 +168,9 @@ function AgendaPage() {
     }
     setBusy(true);
     try {
-      const { data: userRes } = await supabase.auth.getUser();
-      if (!userRes.user) throw new Error("não logado");
       const inicio = new Date(`${data}T${hora}:00`);
       const fim = horaFim ? new Date(`${data}T${horaFim}:00`) : null;
-      const { error } = await supabase.from("eventos").insert({
-        user_id: userRes.user.id,
+      await createLocalEvento({
         titulo,
         tipo,
         inicio: inicio.toISOString(),
@@ -180,7 +178,6 @@ function AgendaPage() {
         local: local || null,
         descricao: descricao || null,
       });
-      if (error) throw error;
       setOpen(false);
       setSelected(inicio);
       if (
@@ -200,9 +197,12 @@ function AgendaPage() {
   }
 
   async function remover(id: string) {
-    const { error } = await supabase.from("eventos").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else load();
+    try {
+      await deleteLocalEvento(id);
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao remover evento");
+    }
   }
 
   const mesLabel = cursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
