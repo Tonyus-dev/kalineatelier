@@ -5,7 +5,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getLocalPresenca, setLocalPresenca, type LocalPresencaState } from "@/lib/local/local-api-client";
+import {
+  getLocalPresenca,
+  setLocalPresenca,
+  type LocalPresencaState,
+} from "@/lib/local/local-api-client";
 
 export type PresencaState = LocalPresencaState;
 

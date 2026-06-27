@@ -66,10 +66,7 @@ function toSedimentoRow(row: LocalSedimentoRow, threadId: string): SedimentoRow 
 }
 
 export async function loadTrilha(threadId: string) {
-  const [msgsRes, sedsRes] = await Promise.all([
-    listLocalMessages(threadId),
-    listLocalSediments(),
-  ]);
+  const [msgsRes, sedsRes] = await Promise.all([listLocalMessages(threadId), listLocalSediments()]);
 
   const messages = (msgsRes.messages as LocalMessageRow[]).map((m) => ({
     id: m.id,

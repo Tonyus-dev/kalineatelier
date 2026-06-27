@@ -2,14 +2,7 @@ import type Database from "better-sqlite3";
 import { newId } from "../utils/ids.js";
 import { nowIso } from "../utils/dates.js";
 
-export const TIPOS_EVENTO = [
-  "compromisso",
-  "aula",
-  "reuniao",
-  "evento",
-  "prazo",
-  "outro",
-] as const;
+export const TIPOS_EVENTO = ["compromisso", "aula", "reuniao", "evento", "prazo", "outro"] as const;
 export type TipoEvento = (typeof TIPOS_EVENTO)[number];
 
 export type EventoRow = {

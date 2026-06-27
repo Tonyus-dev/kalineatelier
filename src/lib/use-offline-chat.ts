@@ -38,9 +38,7 @@ export function useOfflineChat(threadId: string, facet: ChatFacet) {
         await getLocalThread(threadId).catch(() => null);
         const { messages: rows } = await listLocalMessages(threadId);
         if (cancelled) return;
-        setMessages(
-          rows.filter((m) => m.role !== "system").map(toOfflineMessage),
-        );
+        setMessages(rows.filter((m) => m.role !== "system").map(toOfflineMessage));
         setStatus("idle");
       } catch {
         if (cancelled) return;

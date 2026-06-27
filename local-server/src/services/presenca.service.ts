@@ -7,9 +7,11 @@ export type PresencaState = (typeof PRESENCA_STATES)[number];
 export type PresencaRow = { id: "current"; state: PresencaState; updated_at: string };
 
 export function getPresenca(db: Database.Database): PresencaRow | null {
-  return (db.prepare("SELECT * FROM presenca_regime WHERE id = 'current'").get() as
-    | PresencaRow
-    | undefined) ?? null;
+  return (
+    (db.prepare("SELECT * FROM presenca_regime WHERE id = 'current'").get() as
+      | PresencaRow
+      | undefined) ?? null
+  );
 }
 
 export function setPresenca(db: Database.Database, state: PresencaState): PresencaRow {

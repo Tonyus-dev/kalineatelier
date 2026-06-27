@@ -45,9 +45,11 @@ export function createSessao(
 }
 
 export function getSessao(db: Database.Database, id: string): CamaraSessaoRow | null {
-  return (db.prepare("SELECT * FROM camara_sessoes WHERE id = ?").get(id) as
-    | CamaraSessaoRow
-    | undefined) ?? null;
+  return (
+    (db.prepare("SELECT * FROM camara_sessoes WHERE id = ?").get(id) as
+      | CamaraSessaoRow
+      | undefined) ?? null
+  );
 }
 
 export function listSessoes(db: Database.Database): CamaraSessaoRow[] {
@@ -81,9 +83,11 @@ export function createSegmento(
 }
 
 export function getSegmento(db: Database.Database, id: string): CamaraSegmentoRow | null {
-  return (db.prepare("SELECT * FROM camara_segmentos WHERE id = ?").get(id) as
-    | CamaraSegmentoRow
-    | undefined) ?? null;
+  return (
+    (db.prepare("SELECT * FROM camara_segmentos WHERE id = ?").get(id) as
+      | CamaraSegmentoRow
+      | undefined) ?? null
+  );
 }
 
 export function listSegmentos(db: Database.Database, sessaoId: string): CamaraSegmentoRow[] {

@@ -164,7 +164,8 @@ export async function buildOfflineSystemPrompt(
   const baseSystem = facet === "kharis" ? KHARIS_SYSTEM_PROMPT : KALINE_SYSTEM_PROMPT;
   const legalBlock = LEGAL_ANTIHALLUCINATION_BLOCK;
 
-  const kuanyinBlock = facet === "kuanyin" ? KUANYIN_FACET_BLOCK + renderBusinessContextBlock(null) : "";
+  const kuanyinBlock =
+    facet === "kuanyin" ? KUANYIN_FACET_BLOCK + renderBusinessContextBlock(null) : "";
 
   const [jardim, registros, eventos, sedimentos, contextos, presenca] = await Promise.all([
     listLocalMemories({ limit: 5 }).catch(() => ({ memories: [] as never[] })),

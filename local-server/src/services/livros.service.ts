@@ -46,9 +46,5 @@ export function deleteLivro(db: Database.Database, id: string): boolean {
 }
 
 export function setResumo(db: Database.Database, id: string, resumo: string): void {
-  db.prepare("UPDATE livros SET resumo = ?, updated_at = ? WHERE id = ?").run(
-    resumo,
-    nowIso(),
-    id,
-  );
+  db.prepare("UPDATE livros SET resumo = ?, updated_at = ? WHERE id = ?").run(resumo, nowIso(), id);
 }

@@ -30,7 +30,11 @@ import {
 import { createMemoria } from "../services/memory.service.js";
 import { createEvento, TIPOS_EVENTO } from "../services/agenda.service.js";
 import { ollamaChat, OllamaError } from "../services/model-provider/ollama.js";
-import { getTranscriptionStatus, transcribeFile, WhisperError } from "../services/transcription/whisper-cpp.js";
+import {
+  getTranscriptionStatus,
+  transcribeFile,
+  WhisperError,
+} from "../services/transcription/whisper-cpp.js";
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25 MB por segmento (até ~3 min de áudio)
 
@@ -108,40 +112,36 @@ export async function registerCamaraRoutes(app: FastifyInstance): Promise<void> 
     return { segmento };
   });
 
-  app.post<{ Params: { id: string } }>(
-    "/camara/segmentos/:id/transcrever",
-    async (req, reply) => {
-      const db = getDb();
-      const segmento = getSegmento(db, req.params.id);
-      if (!segmento) return reply.code(404).send({ ok: false, error: "Segmento não encontrado" });
+  app.post<{ Params: { id: string } }>("/camara/segmentos/:id/transcrever", async (req, reply) => {
+    const db = getDb();
+    const segmento = getSegmento(db, req.params.id);
+    if (!segmento) return reply.code(404).send({ ok: false, error: "Segmento não encontrado" });
 
-      const data = await req.file({ limits: { fileSize: MAX_UPLOAD_BYTES } }).catch(() => null);
-      if (!data) {
-        return reply.code(400).send({ ok: false, error: "Envie o áudio no campo 'file'." });
-      }
+    const data = await req.file({ limits: { fileSize: MAX_UPLOAD_BYTES } }).catch(() => null);
+    if (!data) {
+      return reply.code(400).send({ ok: false, error: "Envie o áudio no campo 'file'." });
+    }
 
-      setSegmentoStatus(db, segmento.id, { status: "processing" });
+    setSegmentoStatus(db, segmento.id, { status: "processing" });
 
-      const tmpDir = path.join(DATA_DIR, "tmp");
-      await fs.mkdir(tmpDir, { recursive: true });
-      const ext = path.extname(data.filename || "") || ".webm";
-      const tmpPath = path.join(tmpDir, `camara-${randomUUID()}${ext}`);
+    const tmpDir = path.join(DATA_DIR, "tmp");
+    await fs.mkdir(tmpDir, { recursive: true });
+    const ext = path.extname(data.filename || "") || ".webm";
+    const tmpPath = path.join(tmpDir, `camara-${randomUUID()}${ext}`);
 
-      try {
-        await fs.writeFile(tmpPath, await data.toBuffer());
-        const result = await transcribeFile(tmpPath);
-        setSegmentoStatus(db, segmento.id, { status: "transcribed", transcricao: result.text });
-        return { text: result.text };
-      } catch (err) {
-        const msg =
-          err instanceof WhisperError ? err.message : "Falha ao transcrever o segmento.";
-        setSegmentoStatus(db, segmento.id, { status: "failed", erro: msg.slice(0, 500) });
-        return reply.code(502).send({ ok: false, error: msg });
-      } finally {
-        await fs.unlink(tmpPath).catch(() => {});
-      }
-    },
-  );
+    try {
+      await fs.writeFile(tmpPath, await data.toBuffer());
+      const result = await transcribeFile(tmpPath);
+      setSegmentoStatus(db, segmento.id, { status: "transcribed", transcricao: result.text });
+      return { text: result.text };
+    } catch (err) {
+      const msg = err instanceof WhisperError ? err.message : "Falha ao transcrever o segmento.";
+      setSegmentoStatus(db, segmento.id, { status: "failed", erro: msg.slice(0, 500) });
+      return reply.code(502).send({ ok: false, error: msg });
+    } finally {
+      await fs.unlink(tmpPath).catch(() => {});
+    }
+  });
 
   app.post<{ Params: { id: string } }>("/camara/sessoes/:id/analisar", async (req, reply) => {
     const db = getDb();
@@ -251,7 +251,10 @@ export async function registerCamaraRoutes(app: FastifyInstance): Promise<void> 
     const parsed = kairosSchema.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ ok: false, error: parsed.error.message });
 
-    const descricaoFinal = [parsed.data.descricao ?? "", `\n— retorno da Câmara: "${sessao.titulo}"`]
+    const descricaoFinal = [
+      parsed.data.descricao ?? "",
+      `\n— retorno da Câmara: "${sessao.titulo}"`,
+    ]
       .join("")
       .trim();
 

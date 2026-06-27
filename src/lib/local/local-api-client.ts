@@ -313,16 +313,15 @@ export function deleteLocalEvento(id: string) {
 export type LocalPresencaState = "green" | "yellow" | "blue" | "red";
 
 export function getLocalPresenca() {
-  return localApiRequest<{ presenca: { id: "current"; state: LocalPresencaState; updated_at: string } | null }>(
-    "/presenca",
-  );
+  return localApiRequest<{
+    presenca: { id: "current"; state: LocalPresencaState; updated_at: string } | null;
+  }>("/presenca");
 }
 
 export function setLocalPresenca(state: LocalPresencaState) {
-  return localApiRequest<{ presenca: { id: "current"; state: LocalPresencaState; updated_at: string } }>(
-    "/presenca",
-    { method: "PUT", body: JSON.stringify({ state }) },
-  );
+  return localApiRequest<{
+    presenca: { id: "current"; state: LocalPresencaState; updated_at: string };
+  }>("/presenca", { method: "PUT", body: JSON.stringify({ state }) });
 }
 
 export type LocalModelStatus = {
@@ -692,7 +691,11 @@ export function listLocalLivros() {
   return localApiRequest<{ livros: LocalLivro[] }>("/livros");
 }
 
-export function createLocalLivro(input: { titulo: string; autor?: string; texto_extraido: string }) {
+export function createLocalLivro(input: {
+  titulo: string;
+  autor?: string;
+  texto_extraido: string;
+}) {
   return localApiRequest<{ livro: LocalLivro }>("/livros", {
     method: "POST",
     body: JSON.stringify(input),

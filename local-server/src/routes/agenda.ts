@@ -1,7 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { getDb } from "../db/connection.js";
-import { TIPOS_EVENTO, createEvento, deleteEvento, listEventos } from "../services/agenda.service.js";
+import {
+  TIPOS_EVENTO,
+  createEvento,
+  deleteEvento,
+  listEventos,
+} from "../services/agenda.service.js";
 
 const createSchema = z.object({
   titulo: z.string().min(1),
