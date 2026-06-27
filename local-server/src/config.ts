@@ -9,6 +9,7 @@
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
+import { randomBytes } from "node:crypto";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "..");
@@ -139,12 +140,38 @@ export const TTS_CONFIG = {
   },
 } as const;
 
+const BRIDGE_SHARED_KEY_PATH = path.join(DATA_DIR, "bridge-shared-key.txt");
+
+// Resolve KALINE_BRIDGE_SHARED_KEY sem exigir configuração manual: se não vier do
+// ambiente, lê a chave já persistida em disco (estável entre reinícios — pareamento
+// já feito não pode mudar sozinho) ou gera uma nova na primeira execução e a persiste.
+// `wasGenerated` indica se a chave acabou de ser criada nesta execução, para o
+// index.ts decidir se mostra o banner de pareamento.
+function resolveBridgeSharedKey(): { key: string; wasGenerated: boolean } {
+  const fromEnv = env("KALINE_BRIDGE_SHARED_KEY", "");
+  if (fromEnv) return { key: fromEnv, wasGenerated: false };
+
+  if (fs.existsSync(BRIDGE_SHARED_KEY_PATH)) {
+    const persisted = fs.readFileSync(BRIDGE_SHARED_KEY_PATH, "utf8").trim();
+    if (persisted) return { key: persisted, wasGenerated: false };
+  }
+
+  const generated = randomBytes(32).toString("base64url");
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(BRIDGE_SHARED_KEY_PATH, generated, { mode: 0o600 });
+  return { key: generated, wasGenerated: true };
+}
+
+const resolvedBridgeSharedKey = resolveBridgeSharedKey();
+
 export const BRIDGE_CONFIG = {
   tunnelMode: env("KALINE_TUNNEL_MODE", "disabled"),
   deviceId: env("KALINE_DEVICE_ID", ""),
   cloudBridgeUrl: env("KALINE_CLOUD_BRIDGE_URL", ""),
   bridgePublicKey: env("KALINE_BRIDGE_PUBLIC_KEY", ""),
-  bridgeSharedKey: env("KALINE_BRIDGE_SHARED_KEY", ""),
+  bridgeSharedKey: resolvedBridgeSharedKey.key,
+  bridgeSharedKeyWasGenerated: resolvedBridgeSharedKey.wasGenerated,
+  bridgeSharedKeyPath: BRIDGE_SHARED_KEY_PATH,
   bridgeUserToken: env("KALINE_BRIDGE_USER_TOKEN", ""),
 } as const;
 

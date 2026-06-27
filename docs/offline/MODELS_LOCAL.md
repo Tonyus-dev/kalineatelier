@@ -112,8 +112,18 @@ futura/opcional — não é necessário para o fluxo principal da Kaline Offline
 
 ## A Kaline Offline não baixa modelos automaticamente
 
-Em nenhum momento o app dispara `ollama pull` ou qualquer download de modelo por conta
-própria. A pessoa decide o que baixar e quando, fora do app.
+Em nenhum momento o app (o `local-server` em execução) dispara `ollama pull` ou qualquer
+download de modelo por conta própria. A pessoa decide o que baixar e quando, fora do app.
+
+Os instaladores de sistema (`scripts/install-kaline-mint.sh` e
+`scripts/install-kaline-windows.ps1`) são a única exceção, e mesmo assim sempre **pedem
+confirmação explícita antes de baixar** — nunca automaticamente. Nos passos 7 e 8, se o
+binário/modelo do Whisper ou o modelo/voices do Kokoro não forem encontrados nos caminhos
+esperados (`~/Kaline/motores/whisper.cpp` e `~/Kaline/motores/kokoro`), o instalador
+pergunta `[s/N]` antes de clonar/compilar o whisper.cpp (baixando também o
+`ggml-small.bin`) ou de baixar o `.onnx` + voices do Kokoro. Recusar a pergunta não
+interrompe a instalação — só deixa transcrição/voz indisponíveis até configurar
+manualmente os passos abaixo.
 
 ## Fallback para mock (`KALINE_MODEL_FALLBACK_TO_MOCK`)
 

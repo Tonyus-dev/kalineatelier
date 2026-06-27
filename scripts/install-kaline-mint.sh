@@ -131,7 +131,7 @@ ensure_env_kv "TTS_PROVIDER" "kokoro"
 ensure_env_kv "KOKORO_DEFAULT_VOICE" "pf_dora"
 ensure_env_kv "KOKORO_DEFAULT_LANG" "pt-br"
 kaline_ok ".env com host/porta loopback e voz Dora garantidos."
-kaline_log "KALINE_BRIDGE_SHARED_KEY não é gerada automaticamente — configure manualmente em $ENV_FILE se for usar o Olhar de Kairós."
+kaline_log "KALINE_BRIDGE_SHARED_KEY é gerada automaticamente no primeiro start do local-server (sem precisar editar $ENV_FILE)."
 
 # [6/10] Verificar Ollama e modelos --------------------------------------------
 step 6 "Verificando Ollama e modelos ..."
@@ -158,9 +158,10 @@ else
   kaline_warn "ollama não encontrado — provider local ficará indisponível (https://ollama.com); o mock continua funcionando."
 fi
 
-# [7/10] Verificar Whisper -----------------------------------------------------
+# [7/10] Verificar/instalar Whisper ---------------------------------------------
 step 7 "Verificando Whisper (transcrição local) ..."
-for cand_bin in "$HOME/Kaline/motores/whisper.cpp/build/bin/whisper-cli" "$HOME/whisper.cpp/build/bin/whisper-cli"; do
+WHISPER_DIR="$HOME/Kaline/motores/whisper.cpp"
+for cand_bin in "$WHISPER_DIR/build/bin/whisper-cli" "$HOME/whisper.cpp/build/bin/whisper-cli"; do
   if [ -f "$cand_bin" ]; then
     ensure_env_kv "WHISPER_ENABLED" "true"
     ensure_env_kv "WHISPER_ENGINE" "whisper.cpp"
@@ -170,7 +171,7 @@ for cand_bin in "$HOME/Kaline/motores/whisper.cpp/build/bin/whisper-cli" "$HOME/
     break
   fi
 done
-for cand_model in "$HOME/Kaline/motores/whisper.cpp/models/ggml-small.bin" "$HOME/whisper.cpp/models/ggml-small.bin"; do
+for cand_model in "$WHISPER_DIR/models/ggml-small.bin" "$HOME/whisper.cpp/models/ggml-small.bin"; do
   if [ -f "$cand_model" ]; then
     ensure_env_kv "WHISPER_MODEL" "small"
     ensure_env_kv "WHISPER_MODEL_PATH" "$cand_model"
@@ -180,20 +181,52 @@ for cand_model in "$HOME/Kaline/motores/whisper.cpp/models/ggml-small.bin" "$HOM
 done
 if [ -n "${WHISPER_BIN_FOUND:-}" ] && [ -n "${WHISPER_MODEL_FOUND:-}" ]; then
   kaline_ok "Whisper detectado e configurado em $ENV_FILE."
+elif command -v git >/dev/null 2>&1 && command -v cmake >/dev/null 2>&1; then
+  read -r -p "Whisper não encontrado. Baixar e compilar whisper.cpp + modelo small (~500MB) agora em $WHISPER_DIR? [s/N] " resp
+  if [[ "$resp" =~ ^[sS]$ ]]; then
+    mkdir -p "$HOME/Kaline/motores"
+    if [ ! -d "$WHISPER_DIR" ]; then
+      git clone --depth 1 https://github.com/ggerganov/whisper.cpp "$WHISPER_DIR" || kaline_warn "Falha ao clonar whisper.cpp."
+    fi
+    if [ -d "$WHISPER_DIR" ]; then
+      (cd "$WHISPER_DIR" && cmake -B build && cmake --build build --config Release) \
+        || kaline_warn "Falha ao compilar whisper.cpp — verifique se cmake/g++ estão instalados."
+      (cd "$WHISPER_DIR" && bash ./models/download-ggml-model.sh small) \
+        || kaline_warn "Falha ao baixar o modelo ggml-small.bin."
+      cand_bin="$WHISPER_DIR/build/bin/whisper-cli"
+      cand_model="$WHISPER_DIR/models/ggml-small.bin"
+      if [ -f "$cand_bin" ] && [ -f "$cand_model" ]; then
+        ensure_env_kv "WHISPER_ENABLED" "true"
+        ensure_env_kv "WHISPER_ENGINE" "whisper.cpp"
+        ensure_env_kv "WHISPER_CPP_BIN" "$cand_bin"
+        ensure_env_kv "WHISPER_LANGUAGE" "pt"
+        ensure_env_kv "WHISPER_MODEL" "small"
+        ensure_env_kv "WHISPER_MODEL_PATH" "$cand_model"
+        kaline_ok "Whisper compilado e configurado em $ENV_FILE."
+      else
+        kaline_warn "Build do Whisper não produziu binário/modelo esperados — configure manualmente depois (ver docs/offline/MODELS_LOCAL.md)."
+      fi
+    fi
+  else
+    kaline_warn "Pulando Whisper — instale depois manualmente (ver docs/offline/MODELS_LOCAL.md) se for usar transcrição."
+  fi
 else
-  kaline_warn "Binário/modelo do Whisper não encontrado nos caminhos prováveis — transcrição ficará indisponível até configurar manualmente."
+  kaline_warn "Binário/modelo do Whisper não encontrado e cmake/git ausentes para compilar automaticamente — instale manualmente (ver docs/offline/MODELS_LOCAL.md)."
 fi
 
-# [8/10] Verificar Kokoro/Dora --------------------------------------------------
+# [8/10] Verificar/baixar Kokoro/Dora --------------------------------------------
 step 8 "Verificando Kokoro/Dora (voz local) ..."
-for cand_model in "$HOME/Kaline/motores/kokoro/kokoro-v1.0.int8.onnx" "$HOME/kokoro/kokoro-v1.0.int8.onnx"; do
+KOKORO_DIR="$HOME/Kaline/motores/kokoro"
+KOKORO_MODEL_URL="https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.int8.onnx"
+KOKORO_VOICES_URL="https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin"
+for cand_model in "$KOKORO_DIR/kokoro-v1.0.int8.onnx" "$HOME/kokoro/kokoro-v1.0.int8.onnx"; do
   if [ -f "$cand_model" ]; then
     ensure_env_kv "KOKORO_MODEL_PATH" "$cand_model"
     KOKORO_MODEL_FOUND="$cand_model"
     break
   fi
 done
-for cand_voices in "$HOME/Kaline/motores/kokoro/voices-v1.0.bin" "$HOME/kokoro/voices-v1.0.bin"; do
+for cand_voices in "$KOKORO_DIR/voices-v1.0.bin" "$HOME/kokoro/voices-v1.0.bin"; do
   if [ -f "$cand_voices" ]; then
     ensure_env_kv "KOKORO_VOICES_PATH" "$cand_voices"
     KOKORO_VOICES_FOUND="$cand_voices"
@@ -202,8 +235,26 @@ for cand_voices in "$HOME/Kaline/motores/kokoro/voices-v1.0.bin" "$HOME/kokoro/v
 done
 if [ -n "${KOKORO_MODEL_FOUND:-}" ] && [ -n "${KOKORO_VOICES_FOUND:-}" ]; then
   kaline_ok "Kokoro detectado e configurado em $ENV_FILE."
+elif command -v curl >/dev/null 2>&1; then
+  read -r -p "Kokoro não encontrado. Baixar modelo + voices (~150MB) agora em $KOKORO_DIR? [s/N] " resp
+  if [[ "$resp" =~ ^[sS]$ ]]; then
+    mkdir -p "$KOKORO_DIR"
+    ok_dl=true
+    curl -fSL --max-time 300 -o "$KOKORO_DIR/kokoro-v1.0.int8.onnx" "$KOKORO_MODEL_URL" || { kaline_warn "Falha ao baixar o modelo Kokoro."; ok_dl=false; }
+    curl -fSL --max-time 300 -o "$KOKORO_DIR/voices-v1.0.bin" "$KOKORO_VOICES_URL" || { kaline_warn "Falha ao baixar as voices do Kokoro."; ok_dl=false; }
+    if [ "$ok_dl" = true ] && [ -s "$KOKORO_DIR/kokoro-v1.0.int8.onnx" ] && [ -s "$KOKORO_DIR/voices-v1.0.bin" ]; then
+      ensure_env_kv "KOKORO_MODEL_PATH" "$KOKORO_DIR/kokoro-v1.0.int8.onnx"
+      ensure_env_kv "KOKORO_VOICES_PATH" "$KOKORO_DIR/voices-v1.0.bin"
+      kaline_ok "Kokoro baixado e configurado em $ENV_FILE."
+    else
+      rm -f "$KOKORO_DIR/kokoro-v1.0.int8.onnx" "$KOKORO_DIR/voices-v1.0.bin"
+      kaline_warn "Download do Kokoro incompleto — configure manualmente depois (ver docs/offline/MODELS_LOCAL.md)."
+    fi
+  else
+    kaline_warn "Pulando Kokoro — instale depois manualmente (ver docs/offline/MODELS_LOCAL.md) se for usar voz local."
+  fi
 else
-  kaline_warn "Modelo/voices do Kokoro não encontrados — /tts/status ficará 'misconfigured' até configurar manualmente (não quebra o build)."
+  kaline_warn "Modelo/voices do Kokoro não encontrados e curl ausente para baixar automaticamente — instale manualmente (ver docs/offline/MODELS_LOCAL.md)."
 fi
 
 # [9/10] Atalhos e painel -------------------------------------------------------

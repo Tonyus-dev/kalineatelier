@@ -54,9 +54,16 @@ volta.
 Adicione `KALINE_BRIDGE_SHARED_KEY` (string secreta) à configuração do projeto
 (`.env.example` e onde quer que as outras chaves de servidor — Supabase,
 OpenRouter — já estejam documentadas). Essa chave precisa ser idêntica à que
-será configurada no `local-server/.env` da Kaline Offline. Configure-a também
+está configurada no `local-server/.env` (ou persistida em
+`local-server/data/bridge-shared-key.txt`) da Kaline Offline. Configure-a também
 como secret real no ambiente de deploy (ex.: `wrangler secret put
 KALINE_BRIDGE_SHARED_KEY` se for Cloudflare Workers).
+
+**Não invente esse valor.** A Kaline Offline já gera e persiste essa chave
+automaticamente no primeiro start do `local-server` (quando
+`KALINE_BRIDGE_SHARED_KEY` não está configurada manualmente) e a exibe num
+banner no console — peça esse valor a quem roda a Kaline Offline e use
+exatamente ele aqui.
 
 ### 2. Helper de criptografia — AES-256-GCM via Web Crypto
 

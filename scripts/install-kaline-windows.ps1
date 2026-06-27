@@ -117,7 +117,7 @@ Ensure-EnvKv "TTS_PROVIDER" "kokoro"
 Ensure-EnvKv "KOKORO_DEFAULT_VOICE" "pf_dora"
 Ensure-EnvKv "KOKORO_DEFAULT_LANG" "pt-br"
 Ok ".env com host/porta loopback e voz Dora garantidos."
-Log "KALINE_BRIDGE_SHARED_KEY não é gerada automaticamente — configure manualmente em $EnvFile se for usar o Olhar de Kairós."
+Log "KALINE_BRIDGE_SHARED_KEY é gerada automaticamente no primeiro start do local-server (sem precisar editar $EnvFile)."
 
 # [6/10] Ollama e modelos -------------------------------------------------------
 Step 6 "Verificando Ollama e modelos ..."
@@ -142,12 +142,56 @@ if (Has-Cmd "ollama") {
 
 # [7/10] Whisper ----------------------------------------------------------------
 Step 7 "Verificando Whisper (transcrição local) ..."
+$WhisperDir = "$env:USERPROFILE\Kaline\motores\whisper.cpp"
 $whisperBinCands = @(
-    "$env:USERPROFILE\Kaline\motores\whisper.cpp\build\bin\Release\whisper-cli.exe",
-    "$env:USERPROFILE\Kaline\motores\whisper.cpp\build\bin\whisper-cli.exe"
+    "$WhisperDir\build\bin\Release\whisper-cli.exe",
+    "$WhisperDir\build\bin\whisper-cli.exe"
 )
-$whisperModelCand = "$env:USERPROFILE\Kaline\motores\whisper.cpp\models\ggml-small.bin"
+$whisperModelCand = "$WhisperDir\models\ggml-small.bin"
 $whisperBinFound = $whisperBinCands | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+if (-not ($whisperBinFound -and (Test-Path $whisperModelCand))) {
+    if ((Has-Cmd "git") -and (Has-Cmd "cmake")) {
+        $resp = Read-Host "Whisper não encontrado. Baixar e compilar whisper.cpp + modelo small (~500MB) agora em $WhisperDir? [s/N]"
+        if ($resp -match '^[sS]$') {
+            New-Item -ItemType Directory -Force -Path (Split-Path $WhisperDir -Parent) | Out-Null
+            if (-not (Test-Path $WhisperDir)) {
+                git clone --depth 1 https://github.com/ggerganov/whisper.cpp $WhisperDir
+                if ($LASTEXITCODE -ne 0) { Warn "Falha ao clonar whisper.cpp." }
+            }
+            if (Test-Path $WhisperDir) {
+                Push-Location $WhisperDir
+                cmake -B build
+                if ($LASTEXITCODE -eq 0) { cmake --build build --config Release }
+                if ($LASTEXITCODE -ne 0) { Warn "Falha ao compilar whisper.cpp — verifique se o Visual Studio Build Tools/cmake estão instalados." }
+                bash ./models/download-ggml-model.sh small 2>$null
+                if ($LASTEXITCODE -ne 0) {
+                    try {
+                        Invoke-WebRequest -Uri "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin" -OutFile "models\ggml-small.bin" -UseBasicParsing
+                    } catch { Warn "Falha ao baixar o modelo ggml-small.bin." }
+                }
+                Pop-Location
+                $whisperBinFound = $whisperBinCands | Where-Object { Test-Path $_ } | Select-Object -First 1
+                if ($whisperBinFound -and (Test-Path $whisperModelCand)) {
+                    Ensure-EnvKv "WHISPER_ENABLED" "true"
+                    Ensure-EnvKv "WHISPER_ENGINE" "whisper.cpp"
+                    Ensure-EnvKv "WHISPER_CPP_BIN" $whisperBinFound
+                    Ensure-EnvKv "WHISPER_LANGUAGE" "pt"
+                    Ensure-EnvKv "WHISPER_MODEL" "small"
+                    Ensure-EnvKv "WHISPER_MODEL_PATH" $whisperModelCand
+                    Ok "Whisper compilado e configurado em $EnvFile."
+                } else {
+                    Warn "Build do Whisper não produziu binário/modelo esperados — configure manualmente depois (ver docs\offline\MODELS_LOCAL.md)."
+                }
+            }
+        } else {
+            Warn "Pulando Whisper — instale depois manualmente (ver docs\offline\MODELS_LOCAL.md) se for usar transcrição."
+        }
+    } else {
+        Warn "git/cmake não encontrados — pulando build automático do Whisper. Instale manualmente depois (ver docs\offline\MODELS_LOCAL.md)."
+    }
+}
+
 if ($whisperBinFound) {
     Ensure-EnvKv "WHISPER_ENABLED" "true"
     Ensure-EnvKv "WHISPER_ENGINE" "whisper.cpp"
@@ -161,13 +205,37 @@ if (Test-Path $whisperModelCand) {
 if ($whisperBinFound -and (Test-Path $whisperModelCand)) {
     Ok "Whisper detectado e configurado em $EnvFile."
 } else {
-    Warn "Binário/modelo do Whisper não encontrado nos caminhos prováveis — transcrição ficará indisponível até configurar manualmente."
+    Warn "Binário/modelo do Whisper não encontrado — transcrição ficará indisponível até configurar manualmente."
 }
 
 # [8/10] Kokoro/Dora -------------------------------------------------------------
 Step 8 "Verificando Kokoro/Dora (voz local) ..."
-$kokoroModelCand = "$env:USERPROFILE\Kaline\motores\kokoro\kokoro-v1.0.int8.onnx"
-$kokoroVoicesCand = "$env:USERPROFILE\Kaline\motores\kokoro\voices-v1.0.bin"
+$KokoroDir = "$env:USERPROFILE\Kaline\motores\kokoro"
+$kokoroModelCand = "$KokoroDir\kokoro-v1.0.int8.onnx"
+$kokoroVoicesCand = "$KokoroDir\voices-v1.0.bin"
+$KokoroModelUrl = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.int8.onnx"
+$KokoroVoicesUrl = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin"
+
+if (-not ((Test-Path $kokoroModelCand) -and (Test-Path $kokoroVoicesCand))) {
+    $resp = Read-Host "Kokoro não encontrado. Baixar modelo + voices (~150MB) agora em $KokoroDir? [s/N]"
+    if ($resp -match '^[sS]$') {
+        New-Item -ItemType Directory -Force -Path $KokoroDir | Out-Null
+        $okDl = $true
+        try { Invoke-WebRequest -Uri $KokoroModelUrl -OutFile $kokoroModelCand -UseBasicParsing } catch { Warn "Falha ao baixar o modelo Kokoro."; $okDl = $false }
+        try { Invoke-WebRequest -Uri $KokoroVoicesUrl -OutFile $kokoroVoicesCand -UseBasicParsing } catch { Warn "Falha ao baixar as voices do Kokoro."; $okDl = $false }
+        if ($okDl -and (Test-Path $kokoroModelCand) -and (Test-Path $kokoroVoicesCand)) {
+            Ensure-EnvKv "KOKORO_MODEL_PATH" $kokoroModelCand
+            Ensure-EnvKv "KOKORO_VOICES_PATH" $kokoroVoicesCand
+            Ok "Kokoro baixado e configurado em $EnvFile."
+        } else {
+            Remove-Item -Force -ErrorAction SilentlyContinue $kokoroModelCand, $kokoroVoicesCand
+            Warn "Download do Kokoro incompleto — configure manualmente depois (ver docs\offline\MODELS_LOCAL.md)."
+        }
+    } else {
+        Warn "Pulando Kokoro — instale depois manualmente (ver docs\offline\MODELS_LOCAL.md) se for usar voz local."
+    }
+}
+
 if (Test-Path $kokoroModelCand) { Ensure-EnvKv "KOKORO_MODEL_PATH" $kokoroModelCand }
 if (Test-Path $kokoroVoicesCand) { Ensure-EnvKv "KOKORO_VOICES_PATH" $kokoroVoicesCand }
 if ((Test-Path $kokoroModelCand) -and (Test-Path $kokoroVoicesCand)) {

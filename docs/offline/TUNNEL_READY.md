@@ -70,6 +70,17 @@ KALINE_BRIDGE_SHARED_KEY=            # idêntica à da Totalidade
 KALINE_BRIDGE_USER_TOKEN=            # token de sessão (bearer) da sua conta na Totalidade
 ```
 
+### Pareamento sem configuração manual
+
+`KALINE_BRIDGE_SHARED_KEY` não precisa ser inventada por quem instala a Kaline
+Local. Se a env var ficar em branco, o `local-server` (`src/config.ts`) gera
+uma chave forte (`crypto.randomBytes(32)`) no primeiro start, persiste em
+`local-server/data/bridge-shared-key.txt` (estável entre reinícios) e imprime
+um banner único no console com o valor a copiar para o lado online. Quem já
+tem uma chave (de uma instalação anterior, ou compartilhando entre devices)
+continua podendo preencher `KALINE_BRIDGE_SHARED_KEY` manualmente — nesse caso
+o valor do ambiente sempre tem prioridade e nada é gerado.
+
 Modos de `KALINE_TUNNEL_MODE`:
 
 - `disabled` — padrão. Nenhuma comunicação com a nuvem.
