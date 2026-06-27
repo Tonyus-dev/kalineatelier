@@ -1,0 +1,18 @@
+# Cloudflare Worker do Portal Instalador da Kaline Offline.
+# Worker puramente público: HTML único + bootstraps. Não acessa a Kaline local,
+# não recebe tokens/áudio/banco/chaves. Veja README.md para detalhes.
+
+name = "kaline-installer-worker"
+main = "src/index.ts"
+compatibility_date = "2026-06-24"
+
+[assets]
+directory = "public"
+binding = "ASSETS"
+
+# Os bootstraps em install/* são importados como texto puro pelo Worker
+# (src/index.ts) e servidos em /install/*, sem duplicar o conteúdo em public/.
+[[rules]]
+type = "Text"
+globs = ["**/*.sh", "**/*.ps1", "**/*.bat", "**/*.desktop"]
+fallthrough = true

@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kaline Offline — Instale sua presença local com segurança</title>
+<meta name="description" content="Portal instalador da Kaline Offline. Detecta seu sistema e entrega o instalador correto. A instalação real acontece no seu computador." />
+<style>
+  :root {
+    --bg-0: #0b0908;
+    --bg-1: #14100c;
+    --bg-2: #1c1611;
+    --copper: #c97a3a;
+    --amber: #e7a23b;
+    --orange: #e8642c;
+    --text-0: #f4ece1;
+    --text-1: #c9bcab;
+    --text-2: #8f8174;
+    --line: rgba(231, 162, 59, 0.18);
+    --glass: rgba(255, 255, 255, 0.04);
+    --radius: 18px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: radial-gradient(circle at 20% -10%, #2a1a0d 0%, var(--bg-0) 45%) fixed,
+                var(--bg-0);
+    color: var(--text-0);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--amber); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 28px 18px 64px;
+  }
+
+  header.hero {
+    text-align: center;
+    padding: 48px 8px 28px;
+  }
+
+  .wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    margin-bottom: 18px;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--amber), var(--orange));
+    box-shadow: 0 0 14px 2px rgba(231, 162, 59, 0.55);
+  }
+
+  h1 {
+    font-size: clamp(34px, 6vw, 52px);
+    margin: 0 0 10px;
+    background: linear-gradient(135deg, var(--text-0) 30%, var(--amber) 75%, var(--orange) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -0.01em;
+  }
+
+  .subtitle {
+    font-size: clamp(16px, 2.4vw, 19px);
+    color: var(--text-1);
+    margin: 0 0 18px;
+  }
+
+  .lede {
+    max-width: 620px;
+    margin: 0 auto;
+    color: var(--text-1);
+    font-size: 15px;
+  }
+
+  .card {
+    background: var(--glass);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 26px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 18px 40px -24px rgba(0, 0, 0, 0.8);
+  }
+
+  section { margin-top: 26px; }
+
+  .os-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  @media (max-width: 720px) {
+    .os-grid { grid-template-columns: 1fr; }
+  }
+
+  .os-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .os-card.is-highlight {
+    border-color: rgba(231, 162, 59, 0.5);
+    box-shadow: 0 0 0 1px rgba(231, 162, 59, 0.25), 0 18px 40px -24px rgba(0, 0, 0, 0.8);
+  }
+  .os-card.is-dimmed { opacity: 0.55; }
+  .os-card .badge {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--bg-0);
+    background: linear-gradient(135deg, var(--amber), var(--orange));
+    padding: 3px 9px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+  }
+  .os-card h3 { margin: 0 0 6px; font-size: 21px; }
+  .os-card p.desc { color: var(--text-1); font-size: 14px; margin: 0 0 16px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 13px 18px;
+    border-radius: 12px;
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    color: #1a0f06;
+    background: linear-gradient(135deg, var(--amber), var(--orange));
+    transition: filter 0.15s ease, transform 0.1s ease;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:active { transform: translateY(1px); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-0);
+    border: 1px solid var(--line);
+  }
+  .btn-ghost:hover { background: rgba(255, 255, 255, 0.04); filter: none; }
+
+  .stack { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+
+  .cmd-block { margin-top: 14px; }
+  .cmd-label {
+    font-size: 12px;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .cmd-label.revisavel { color: var(--amber); }
+  pre.cmd {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    color: #e9dcc8;
+    margin: 0 0 8px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  h2 {
+    font-size: 22px;
+    margin: 0 0 6px;
+    color: var(--text-0);
+  }
+  .section-hint { color: var(--text-2); font-size: 13.5px; margin: 0 0 16px; }
+
+  ul.checklist { margin: 0; padding: 0; list-style: none; }
+  ul.checklist li {
+    padding: 9px 0 9px 26px;
+    position: relative;
+    color: var(--text-1);
+    font-size: 14.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+  ul.checklist li:last-child { border-bottom: none; }
+  ul.checklist li::before {
+    content: "›";
+    position: absolute;
+    left: 4px;
+    color: var(--amber);
+    font-weight: 700;
+  }
+
+  .security-card { border-color: rgba(231, 162, 59, 0.3); }
+  .security-card ul.checklist li::before { content: "✓"; color: #6fbf7a; }
+  .callout {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(232, 100, 44, 0.12);
+    border: 1px solid rgba(232, 100, 44, 0.4);
+    color: #ffd9bd;
+    font-size: 14.5px;
+    font-weight: 600;
+  }
+
+  .accordion-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .accordion-item:last-child { border-bottom: none; }
+  .accordion-trigger {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--text-0);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 14px 4px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .accordion-trigger:hover { color: var(--amber); }
+  .accordion-trigger .chev {
+    color: var(--text-2);
+    transition: transform 0.18s ease;
+    flex-shrink: 0;
+  }
+  .accordion-item.open .accordion-trigger .chev { transform: rotate(45deg); color: var(--amber); }
+  .accordion-panel {
+    display: none;
+    padding: 0 4px 16px;
+    color: var(--text-1);
+    font-size: 14px;
+  }
+  .accordion-item.open .accordion-panel { display: block; }
+
+  footer {
+    text-align: center;
+    margin-top: 48px;
+    color: var(--text-2);
+    font-size: 13px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    color: var(--text-0);
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13.5px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 50;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="wordmark"><span class="dot"></span> Kaline Atelier</div>
+    <h1>Kaline Offline</h1>
+    <p class="subtitle">Instale sua presença local com segurança.</p>
+    <p class="lede">
+      Este portal identifica seu sistema e entrega o instalador correto da
+      Kaline Offline. A instalação real acontece no seu computador, por
+      scripts locais do próprio repositório.
+    </p>
+  </header>
+
+  <section class="os-grid" id="os-grid" aria-label="Escolha do instalador">
+    <div class="card os-card" id="card-linux" data-os="linux">
+      <span class="badge">Linux Mint Xfce</span>
+      <h3>Instalador Linux Mint</h3>
+      <p class="desc">
+        Use este instalador no Linux Mint Xfce. Ele baixa um pequeno
+        bootstrap público, localiza ou clona o repositório da Kaline e chama
+        o instalador real já existente em
+        <code>scripts/install-kaline-mint.sh</code>.
+      </p>
+      <div class="stack">
+        <a class="btn" href="/install/linux-mint.sh" download="install-kaline.sh">Baixar instalador Linux Mint</a>
+        <button class="btn btn-ghost" type="button" data-copy="linux">Copiar comando Linux</button>
+      </div>
+
+      <div class="cmd-block">
+        <div class="cmd-label revisavel">Comando revisável (recomendado)</div>
+        <pre class="cmd" id="cmd-linux-review">curl -fsSL ORIGEM/install/linux-mint.sh -o install-kaline.sh &amp;&amp; less install-kaline.sh &amp;&amp; bash install-kaline.sh</pre>
+      </div>
+      <div class="cmd-block">
+        <div class="cmd-label">Comando rápido (sem revisar antes)</div>
+        <pre class="cmd" id="cmd-linux-quick">curl -fsSL ORIGEM/install/linux-mint.sh -o install-kaline.sh &amp;&amp; bash install-kaline.sh</pre>
+      </div>
+    </div>
+
+    <div class="card os-card" id="card-windows" data-os="windows">
+      <span class="badge">Windows</span>
+      <h3>Instalador Windows</h3>
+      <p class="desc">
+        Use este instalador no Windows. Ele baixa um pequeno bootstrap
+        público, localiza ou clona o repositório da Kaline e chama o
+        instalador real já existente em
+        <code>scripts/install-kaline-windows.ps1</code>.
+      </p>
+      <div class="stack">
+        <a class="btn" href="/install/windows.bat" download="kaline-installer-windows.bat">Baixar instalador Windows</a>
+        <button class="btn btn-ghost" type="button" data-copy="windows">Copiar comando Windows</button>
+      </div>
+
+      <div class="cmd-block">
+        <div class="cmd-label revisavel">Comando PowerShell</div>
+        <pre class="cmd" id="cmd-windows">irm ORIGEM/install/windows.ps1 -OutFile install-kaline.ps1; powershell -ExecutionPolicy Bypass -File .\install-kaline.ps1</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="not-detected" hidden>
+    <p class="section-hint" style="margin:0;">
+      Não conseguimos identificar seu sistema automaticamente — escolha o
+      instalador correto acima (Linux Mint Xfce ou Windows).
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>O que o instalador fará</h2>
+    <p class="section-hint">Tudo isso acontece localmente, no seu computador — nunca no Worker.</p>
+    <ul class="checklist">
+      <li>Verifica se a Kaline já está baixada</li>
+      <li>Clona Tonyus-dev/kalineatelier se necessário</li>
+      <li>Verifica GitHub CLI (gh)</li>
+      <li>Orienta <code>gh auth login</code> se necessário</li>
+      <li>Chama o instalador real do repositório</li>
+      <li>Instala dependências do projeto</li>
+      <li>Configura <code>.env</code> com backup</li>
+      <li>Verifica Ollama</li>
+      <li>Verifica modelos locais</li>
+      <li>Baixa modelos ausentes apenas com sua confirmação</li>
+      <li>Verifica Whisper Small</li>
+      <li>Verifica Kokoro/Dora</li>
+      <li>Prepara o local-server</li>
+      <li>Inicializa o banco SQLite pelo próprio local-server</li>
+      <li>Valida tabelas locais quando possível</li>
+      <li>Cria atalhos Kaline Offline e Kaline Janelinha</li>
+      <li>No Linux Mint Xfce, tenta fixar a Janelinha na barra com segurança</li>
+      <li>No Windows, cria atalhos na Área de Trabalho e no Menu Iniciar</li>
+    </ul>
+  </section>
+
+  <section class="card security-card">
+    <h2>Segurança</h2>
+    <ul class="checklist">
+      <li>O portal não instala nada sozinho</li>
+      <li>O portal não lê seus arquivos</li>
+      <li>O portal não cria atalhos diretamente</li>
+      <li>O portal não recebe áudio</li>
+      <li>O portal não acessa sua Kaline local</li>
+      <li>O portal não pede token GitHub</li>
+      <li>O portal não guarda chaves</li>
+      <li>A instalação real acontece localmente, no seu computador</li>
+      <li>A Kaline Offline roda em <code>127.0.0.1:64113</code></li>
+      <li>O microfone só liga quando você clica</li>
+    </ul>
+    <div class="callout">⚠ Nunca cole tokens ou chaves secretas neste site.</div>
+  </section>
+
+  <section class="card" id="faq">
+    <h2>Problemas comuns</h2>
+    <p class="section-hint">Clique para abrir cada item.</p>
+    <div id="accordion"></div>
+  </section>
+
+  <footer>Kaline Offline — local-first, revisável e sob seu controle.</footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var origin = window.location.origin;
+  document.getElementById("cmd-linux-review").textContent =
+    document.getElementById("cmd-linux-review").textContent.replace("ORIGEM", origin);
+  document.getElementById("cmd-linux-quick").textContent =
+    document.getElementById("cmd-linux-quick").textContent.replace("ORIGEM", origin);
+  document.getElementById("cmd-windows").textContent =
+    document.getElementById("cmd-windows").textContent.replace("ORIGEM", origin);
+
+  var COMMANDS = {
+    linux: "curl -fsSL " + origin + "/install/linux-mint.sh -o install-kaline.sh && less install-kaline.sh && bash install-kaline.sh",
+    windows: "irm " + origin + "/install/windows.ps1 -OutFile install-kaline.ps1; powershell -ExecutionPolicy Bypass -File .\\install-kaline.ps1",
+  };
+
+  function detectOS() {
+    var ua = (navigator.userAgent || "").toLowerCase();
+    var platform = (navigator.platform || "").toLowerCase();
+    if (ua.indexOf("windows") !== -1 || platform.indexOf("win") !== -1) return "windows";
+    if (ua.indexOf("linux") !== -1 || platform.indexOf("linux") !== -1) {
+      if (ua.indexOf("android") !== -1) return "other";
+      return "linux";
+    }
+    return "other";
+  }
+
+  var os = detectOS();
+  var cardLinux = document.getElementById("card-linux");
+  var cardWindows = document.getElementById("card-windows");
+
+  if (os === "linux") {
+    cardLinux.classList.add("is-highlight");
+    cardWindows.classList.add("is-dimmed");
+  } else if (os === "windows") {
+    cardWindows.classList.add("is-highlight");
+    cardLinux.classList.add("is-dimmed");
+  } else {
+    document.getElementById("not-detected").hidden = false;
+  }
+
+  var toastEl = document.getElementById("toast");
+  var toastTimer = null;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2200);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) { /* sem alternativa */ }
+    document.body.removeChild(ta);
+    return Promise.resolve();
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-copy]"), function (btn) {
+    btn.addEventListener("click", function () {
+      var key = btn.getAttribute("data-copy");
+      var text = COMMANDS[key];
+      if (!text) return;
+      copyText(text).then(function () { toast("Comando copiado."); });
+    });
+  });
+
+  var FAQ = [
+    {
+      q: "gh não existe",
+      a: "Instale o GitHub CLI antes de rodar o bootstrap: no Linux, <code>sudo apt install gh</code>; no Windows, <code>winget install --id GitHub.cli</code>. Depois rode o instalador de novo."
+    },
+    {
+      q: "Não tenho acesso ao repo",
+      a: "Rode <code>gh auth login</code> em um terminal e siga o fluxo interativo do GitHub. Nunca cole tokens neste site — a autenticação acontece só no seu terminal."
+    },
+    {
+      q: "Mint bloqueou o script",
+      a: "Clique com o botão direito no arquivo baixado → \"Permitir execução\" → tente de novo. Ou rode pelo terminal: <code>bash kaline-installer-linux-mint.sh</code>."
+    },
+    {
+      q: "PowerShell bloqueou o script",
+      a: "Use o arquivo <code>.bat</code> (ele já chama o PowerShell com <code>-ExecutionPolicy Bypass</code> só para aquele processo, sem mudar a política do sistema). Ou rode manualmente: <code>powershell -ExecutionPolicy Bypass -File kaline-installer-windows.ps1</code>."
+    },
+    {
+      q: "Ollama não está rodando",
+      a: "Instale em https://ollama.com e inicie o serviço. Sem ele, o instalador segue e avisa — o modo mock do local-server continua funcionando."
+    },
+    {
+      q: "Modelo Ollama ausente",
+      a: "O instalador real pergunta antes de baixar qualquer modelo (<code>ollama pull &lt;modelo&gt;</code>). Se você recusar, a Kaline é instalada, mas a IA local fica indisponível até você baixar o modelo manualmente."
+    },
+    {
+      q: "Whisper Small não encontrado",
+      a: "O instalador procura o binário/modelo em caminhos conhecidos (ex.: <code>~/Kaline/motores/whisper.cpp/...</code>). Se não achar, a transcrição fica indisponível até você configurar manualmente — isso não quebra a instalação."
+    },
+    {
+      q: "Kokoro/Dora não encontrado",
+      a: "Mesma lógica do Whisper: sem o modelo/voices do Kokoro, a voz local fica indisponível e o navegador usa <code>speechSynthesis</code> como alternativa — a instalação não falha por isso."
+    },
+    {
+      q: "Janelinha não apareceu na barra do Mint",
+      a: "A fixação automática no painel do Xfce é cautelosa por segurança e pode desistir. Abra o menu de aplicativos, procure \"Kaline Janelinha\", clique com o botão direito e escolha \"Adicionar ao painel\" (ou arraste o ícone até a barra)."
+    }
+  ];
+
+  var accordion = document.getElementById("accordion");
+  FAQ.forEach(function (item, idx) {
+    var wrap = document.createElement("div");
+    wrap.className = "accordion-item";
+
+    var trigger = document.createElement("button");
+    trigger.className = "accordion-trigger";
+    trigger.type = "button";
+    trigger.setAttribute("aria-expanded", "false");
+    var panelId = "faq-panel-" + idx;
+    trigger.setAttribute("aria-controls", panelId);
+    trigger.innerHTML = "<span>" + item.q + "</span><span class=\"chev\">+</span>";
+
+    var panel = document.createElement("div");
+    panel.className = "accordion-panel";
+    panel.id = panelId;
+    panel.innerHTML = "<p style=\"margin:0;\">" + item.a + "</p>";
+
+    trigger.addEventListener("click", function () {
+      var isOpen = wrap.classList.toggle("open");
+      trigger.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+
+    wrap.appendChild(trigger);
+    wrap.appendChild(panel);
+    accordion.appendChild(wrap);
+  });
+})();
+</script>
+</body>
+</html>
