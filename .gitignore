@@ -30,6 +30,11 @@ local-server/data/*.db
 local-server/data/tmp
 !local-server/data/.gitkeep
 
+# Kaline Desktop (apps/kaline-desktop) — casca Tauri (Rust)
+apps/kaline-desktop/node_modules
+apps/kaline-desktop/src-tauri/target
+apps/kaline-desktop/src-tauri/gen
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

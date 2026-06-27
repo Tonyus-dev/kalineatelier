@@ -6,7 +6,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "**/dist", ".output", ".vinxi"] },
+  { ignores: ["dist", "**/dist", ".output", ".vinxi", "apps/kaline-desktop/src-tauri/target"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

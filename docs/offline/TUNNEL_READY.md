@@ -107,6 +107,18 @@ que o companion nativo do PR 2 vai embrulhar):
 `GET /bridge/status` agora inclui um bloco `kairos` com `lastPullAt`/`lastPullStatus` além
 de `lastCloudCheckAt`/`lastError`.
 
+## Companion nativo (PR 2) — `apps/kaline-desktop`
+
+Casca Tauri fina (Rust), sem lógica própria, que só abre janelas apontando para a Kaline
+Offline já em execução. Dois lançadores no menu de aplicativos do Linux (não na barra):
+
+- **K∧LINE** — janela normal com o app completo (`/chat`).
+- **Janelinha da Kaline** — janela pequena, sem decoração, *always-on-top*, carregando a
+  rota `/janelinha` (KITT pulsando + botões de falar/gravar, já testável como rota web).
+
+Detalhes de build/instalação (Linux verificado neste repo; Windows documentado, não
+verificado) em `apps/kaline-desktop/README.md`.
+
 ## `GET /bridge/status`
 
 ```json
