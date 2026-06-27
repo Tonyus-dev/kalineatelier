@@ -403,6 +403,16 @@ export type LocalBridgeStatus = {
   bridgeSharedKeyConfigured: boolean;
   lastCloudCheckAt: string | null;
   lastError: string | null;
+  kairos?: {
+    enabled: boolean;
+    mode: string;
+    cloudBridgeConfigured: boolean;
+    sharedKeyConfigured: boolean;
+    userTokenConfigured: boolean;
+    lastPullAt: string | null;
+    lastPullStatus: "ok" | "error" | null;
+    lastError: string | null;
+  };
   message: string;
 };
 
@@ -416,7 +426,8 @@ export type LocalBridgePullResult =
 
 export async function pullLocalBridge(): Promise<LocalBridgePullResult> {
   try {
-    const res = await fetch(localApiUrl("/bridge/pull"), { method: "POST" });
+    // Endpoint canônico (online -> offline); /bridge/pull segue como alias deprecado.
+    const res = await fetch(localApiUrl("/bridge/olhar-de-kairos/pull-online"), { method: "POST" });
     const body = await res.json();
     if (!res.ok) return { ok: false, error: body?.error ?? `API local respondeu ${res.status}.` };
     return { ok: true, eventsCreated: body.eventsCreated };
@@ -426,4 +437,107 @@ export async function pullLocalBridge(): Promise<LocalBridgePullResult> {
       error: err instanceof Error ? err.message : "Falha ao puxar o Olhar de Kairós.",
     };
   }
+}
+
+// --- Reuniões (gravação local pelo PWA) ---
+
+export type LocalMeetingTranscribeResult =
+  | { ok: true; text: string; durationMs: number; model: string; language: string }
+  | { ok: false; error: string };
+
+export async function transcribeLocalMeeting(file: Blob): Promise<LocalMeetingTranscribeResult> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file, "reuniao.webm");
+    const res = await fetch(localApiUrl("/meetings/transcribe"), {
+      method: "POST",
+      body: formData,
+    });
+    const body = await res.json();
+    if (!res.ok) return { ok: false, error: body?.error ?? `API local respondeu ${res.status}.` };
+    return {
+      ok: true,
+      text: body.text,
+      durationMs: body.durationMs,
+      model: body.model,
+      language: body.language,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Falha ao transcrever a reunião.",
+    };
+  }
+}
+
+export function saveLocalMeeting(input: {
+  title?: string;
+  transcript: string;
+  durationMs?: number;
+  summary?: string;
+  participants?: string[];
+}) {
+  return localApiRequest<{ ok: true; event: unknown }>("/meetings", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listLocalMeetings() {
+  return localApiRequest<{ meetings: unknown[] }>("/meetings");
+}
+
+// --- Voz (Kokoro, voz Dora) com fallback honesto para o navegador ---
+
+/**
+ * Fala `text` usando o Kokoro local (voz Dora) via POST /tts/speak. Se o Kokoro não
+ * estiver disponível, cai para a síntese do navegador (window.speechSynthesis) — voz do
+ * SO, não fingida. Nunca lança.
+ */
+export async function speakLocal(text: string, voice = "pf_dora"): Promise<void> {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  try {
+    const res = await fetch(localApiUrl("/tts/speak"), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: trimmed, voice }),
+    });
+    if (res.ok && (res.headers.get("content-type") ?? "").includes("audio")) {
+      const blob = await res.blob();
+      await playAudioBlob(blob);
+      return;
+    }
+  } catch {
+    // cai para o fallback do navegador
+  }
+  speakWithBrowser(trimmed);
+}
+
+function playAudioBlob(blob: Blob): Promise<void> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    const done = () => {
+      URL.revokeObjectURL(url);
+      resolve();
+    };
+    audio.onended = done;
+    audio.onerror = done;
+    void audio.play().catch(done);
+  });
+}
+
+function speakWithBrowser(text: string): void {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "pt-BR";
+  const ptVoice = window.speechSynthesis
+    .getVoices()
+    .find(
+      (v) =>
+        v.lang?.toLowerCase().startsWith("pt") && /female|dora|luciana|maria|fem/i.test(v.name),
+    );
+  if (ptVoice) utter.voice = ptVoice;
+  window.speechSynthesis.speak(utter);
 }

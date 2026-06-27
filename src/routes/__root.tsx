@@ -137,6 +137,13 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
+  // Registra o service worker (PWA instalável). Só em produção, para não interferir no dev.
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    if (!import.meta.env.PROD) return;
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }, []);
+
   // View Transitions API — crossfade nativo entre rotas.
   // Intercepta cada navegação e re-renderiza dentro de startViewTransition.
   useEffect(() => {

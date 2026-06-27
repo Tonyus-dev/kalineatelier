@@ -28,6 +28,7 @@ import { registerModelRoutes } from "./routes/model.js";
 import { registerBridgeRoutes } from "./routes/bridge.js";
 import { registerTranscribeRoutes } from "./routes/transcribe.js";
 import { registerTtsRoutes } from "./routes/tts.js";
+import { registerMeetingsRoutes } from "./routes/meetings.js";
 
 runMigrations(getDb());
 
@@ -44,6 +45,7 @@ await registerModelRoutes(app);
 await registerBridgeRoutes(app);
 await registerTranscribeRoutes(app);
 await registerTtsRoutes(app);
+await registerMeetingsRoutes(app);
 await registerSettingsRoutes(app);
 await registerIdentityRoutes(app);
 await registerThreadsRoutes(app);

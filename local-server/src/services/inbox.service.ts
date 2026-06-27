@@ -54,16 +54,22 @@ export function createInboxEvent(
 
 export function listInboxEvents(
   db: Database.Database,
-  opts: { status?: InboxStatus } = {},
+  opts: { status?: InboxStatus; type?: string } = {},
 ): InboxEventRow[] {
+  const clauses: string[] = [];
+  const params: Record<string, unknown> = {};
   if (opts.status) {
-    return db
-      .prepare("SELECT * FROM inbox_events WHERE status = ? ORDER BY received_at DESC")
-      .all(opts.status) as InboxEventRow[];
+    clauses.push("status = @status");
+    params.status = opts.status;
   }
+  if (opts.type) {
+    clauses.push("type = @type");
+    params.type = opts.type;
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
   return db
-    .prepare("SELECT * FROM inbox_events ORDER BY received_at DESC")
-    .all() as InboxEventRow[];
+    .prepare(`SELECT * FROM inbox_events ${where} ORDER BY received_at DESC`)
+    .all(params) as InboxEventRow[];
 }
 
 export function updateInboxEventStatus(
