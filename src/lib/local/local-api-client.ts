@@ -683,6 +683,44 @@ export function gerarLocalResumoLivro(id: string) {
   return localApiRequest<{ resumo: string }>(`/livros/${id}/resumo`, { method: "POST" });
 }
 
+// --- Contexto externo ---
+
+export type LocalContextoExterno = {
+  id: string;
+  titulo: string;
+  conteudo: string;
+  tipo: "identidade" | "memoria_relacional";
+  ativo: 0 | 1;
+  created_at: string;
+  updated_at: string;
+};
+
+export function listLocalContextosExternos() {
+  return localApiRequest<{ contextos: LocalContextoExterno[] }>("/contexto-externo");
+}
+
+export function createLocalContextoExterno(input: {
+  titulo: string;
+  conteudo: string;
+  tipo?: "identidade" | "memoria_relacional";
+}) {
+  return localApiRequest<{ contexto: LocalContextoExterno }>("/contexto-externo", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function toggleLocalContextoExterno(id: string, ativo: boolean) {
+  return localApiRequest<{ ok: true }>(`/contexto-externo/${id}/toggle`, {
+    method: "POST",
+    body: JSON.stringify({ ativo }),
+  });
+}
+
+export function deleteLocalContextoExterno(id: string) {
+  return localApiRequest<{ ok: true }>(`/contexto-externo/${id}`, { method: "DELETE" });
+}
+
 // --- Voz (Kokoro, voz Dora) com fallback honesto para o navegador ---
 
 /**

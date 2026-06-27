@@ -159,6 +159,18 @@ CREATE TABLE IF NOT EXISTS livros (
   updated_at TEXT NOT NULL
 );
 
+-- Contexto externo: blocos de identidade/memória relacional migrados de outra
+-- instância, injetados como diretriz adicional no system prompt enquanto ativos.
+CREATE TABLE IF NOT EXISTS contexto_externo (
+  id TEXT PRIMARY KEY,
+  titulo TEXT NOT NULL,
+  conteudo TEXT NOT NULL,
+  tipo TEXT NOT NULL CHECK (tipo IN ('identidade', 'memoria_relacional')) DEFAULT 'identidade',
+  ativo INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS inbox_events (
   id TEXT PRIMARY KEY,
   source TEXT NOT NULL,
