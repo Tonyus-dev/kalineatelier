@@ -55,16 +55,54 @@ Instale Node.js 20+ em [nodejs.org](https://nodejs.org) ou via [nvm](https://git
 - Confirme que o processo tem permissão de escrita na pasta `local-server/data/`.
 - Veja `GET /health` — o campo `sqlite` deve estar `"ok"`.
 
-## Ollama offline
+## Ollama não respondeu
 
 ```txt
-GET /model/status
+"message": "Ollama não respondeu em http://127.0.0.1:11434."
 ```
 
-Se `provider` for `ollama` mas o serviço não estiver rodando, as chamadas de IA real vão
-falhar (a Kaline Offline não cai automaticamente para o mock nesta fase, a menos que
-`KALINE_MODEL_FALLBACK_TO_MOCK` seja tratado por um PR futuro). Rode `ollama serve` ou abra
-o app do Ollama, e confirme `OLLAMA_BASE_URL` em `local-server/.env`.
+O Ollama não está rodando, ou `OLLAMA_BASE_URL` em `local-server/.env` está errado. Rode
+`ollama serve` ou abra o app do Ollama, confirme a URL e tente `GET /model/status` de novo.
+Com `KALINE_MODEL_FALLBACK_TO_MOCK=false` (padrão), o Chat Kaline retorna erro claro em vez
+de fingir sucesso; com `=true`, ele cai para o mock mas marca a resposta com
+`"fallback": true` e um aviso.
+
+## Ollama ativo, mas modelo não encontrado
+
+```txt
+"message": "Ollama ativo, mas o modelo qwen3.5:0.8b não foi encontrado. Rode: ollama pull qwen3.5:0.8b"
+```
+
+Baixe o modelo indicado (a mensagem aponta exatamente qual falta):
+
+```bash
+ollama pull qwen3.5:0.8b
+```
+
+## Whisper indisponível
+
+```txt
+"message": "WHISPER_CPP_BIN não encontrado. Configure o caminho do binário whisper-cli."
+```
+
+ou
+
+```txt
+"message": "WHISPER_CPP_MODEL não encontrado."
+```
+
+Verifique `WHISPER_CPP_BIN` e `WHISPER_CPP_MODEL` no `.env` do `local-server` — ambos
+precisam apontar para caminhos absolutos que existem no seu sistema. Veja
+[`MODELS_LOCAL.md`](./MODELS_LOCAL.md) para o passo a passo de instalação do whisper.cpp e
+download do `ggml-small.bin`. `node scripts/check-local-env.js` reporta isso também, quando
+essas variáveis estão configuradas no `.env`.
+
+## `POST /transcribe/file` falhou
+
+Confirme que o arquivo enviado é um áudio válido e que o binário/modelo do whisper.cpp
+existem nos caminhos configurados. O erro retornado em `error` é direto — geralmente
+aponta exatamente o que falta. O arquivo temporário enviado é sempre removido após a
+tentativa, com sucesso ou falha.
 
 ## OpenRouter sem chave
 
@@ -74,12 +112,6 @@ o app do Ollama, e confirme `OLLAMA_BASE_URL` em `local-server/.env`.
 
 Defina `OPENROUTER_API_KEY` em `local-server/.env` (nunca em arquivo versionado) ou volte
 `KALINE_MODEL_PROVIDER` para `mock`.
-
-## Provider mock aparecendo mesmo configurando outro provider
-
-Nesta fase (v0.1, PR 5), `GET /model/status` reporta o provider configurado, mas o fluxo de
-chat ainda gera respostas mock internamente — a troca real de provider no chat é trabalho
-de um PR futuro. Isso é esperado e documentado em `MODELS_LOCAL.md`.
 
 ## Túnel desativado
 

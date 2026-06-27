@@ -55,6 +55,19 @@ async function main() {
   }
 
   try {
+    const transcribe = await request("/transcribe/status");
+    record(
+      "GET /transcribe/status",
+      transcribe.status === 200 &&
+        transcribe.body?.ok === true &&
+        typeof transcribe.body?.available === "boolean",
+      JSON.stringify(transcribe.body),
+    );
+  } catch (err) {
+    record("GET /transcribe/status", false, String(err));
+  }
+
+  try {
     const chat = await request("/chat", {
       method: "POST",
       body: JSON.stringify({ message: "smoke test" }),

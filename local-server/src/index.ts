@@ -8,6 +8,7 @@
 
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import multipart from "@fastify/multipart";
 import { HOST, PORT, CORS_ALLOWED_ORIGINS } from "./config.js";
 import { getDb, closeDb } from "./db/connection.js";
 import { runMigrations } from "./db/migrate.js";
@@ -25,6 +26,7 @@ import { registerInboxRoutes } from "./routes/inbox.js";
 import { registerReportsRoutes } from "./routes/reports.js";
 import { registerModelRoutes } from "./routes/model.js";
 import { registerBridgeRoutes } from "./routes/bridge.js";
+import { registerTranscribeRoutes } from "./routes/transcribe.js";
 
 runMigrations(getDb());
 
@@ -34,9 +36,12 @@ await app.register(cors, {
   origin: CORS_ALLOWED_ORIGINS,
 });
 
+await app.register(multipart);
+
 await registerHealthRoute(app);
 await registerModelRoutes(app);
 await registerBridgeRoutes(app);
+await registerTranscribeRoutes(app);
 await registerSettingsRoutes(app);
 await registerIdentityRoutes(app);
 await registerThreadsRoutes(app);

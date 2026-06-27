@@ -12,10 +12,13 @@ não precisa de conta paga e por padrão não consome créditos de IA (provider 
 
 Opcional, apenas se quiser IA real:
 
-- [Ollama](https://ollama.com) para modelos locais, **ou**
+- [Ollama](https://ollama.com) com os modelos `qwen3.5:0.8b` e `qwen2.5:0.5b` para
+  texto/resumo/visão, **e/ou**
+- [whisper.cpp](https://github.com/ggerganov/whisper.cpp) com o modelo `ggml-small.bin`
+  para transcrição de áudio, **e/ou**
 - uma chave de API da [OpenRouter](https://openrouter.ai).
 
-Nenhum dos dois é necessário para abrir e usar a Kaline Offline no modo padrão.
+Nenhum dos três é necessário para abrir e usar a Kaline Offline no modo padrão (mock).
 
 ## 1. Baixar o repositório
 
@@ -114,5 +117,6 @@ funcionam normalmente. O script `scripts/start-kaline-linux.sh` também funciona
 ## Próximo passo
 
 Depois de abrir `/atelier`, veja [`MODELS_LOCAL.md`](./MODELS_LOCAL.md) para entender as
-opções de IA (mock, OpenRouter, Ollama) e [`TROUBLESHOOTING.md`](./TROUBLESHOOTING.md) caso
-algo não funcione.
+opções de IA (mock, Ollama + Qwen3.5 4B, whisper.cpp + ggml-small, OpenRouter) e
+[`TROUBLESHOOTING.md`](./TROUBLESHOOTING.md) caso algo não funcione. A aba Configurações
+do Atelier mostra o status real de cada motor e permite testar texto, imagem e áudio.

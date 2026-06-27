@@ -237,10 +237,124 @@ export type LocalModelStatus = {
   configured: boolean;
   fallbackToMock: boolean;
   message: string;
+  available?: boolean;
+  baseUrl?: string;
+  models?: Record<string, string | { name: string; available: boolean }>;
 };
 
 export function getLocalModelStatus() {
   return localApiRequest<LocalModelStatus>("/model/status");
+}
+
+export type LocalTestResult =
+  | { ok: true; text: string; provider?: string; fallback?: boolean; warning?: string }
+  | { ok: false; message: string };
+
+export async function testLocalModel(
+  message = "Responda em português: Kaline Offline está acordada?",
+): Promise<LocalTestResult> {
+  try {
+    const res = await sendLocalChatMessage({ message });
+    const assistantMessage = res.assistantMessage as {
+      content: string;
+      metadata_json?: string | null;
+    };
+    const metadata = assistantMessage.metadata_json
+      ? (JSON.parse(assistantMessage.metadata_json) as Record<string, unknown>)
+      : null;
+    return {
+      ok: true,
+      text: assistantMessage.content,
+      provider: metadata?.provider as string | undefined,
+      fallback: metadata?.fallback as boolean | undefined,
+      warning: metadata?.warning as string | undefined,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "Falha ao testar o modelo local.",
+    };
+  }
+}
+
+export type LocalVisionResult =
+  | { ok: true; text: string; provider: string; model: string }
+  | { ok: false; message: string };
+
+export async function testLocalVision(input: {
+  prompt?: string;
+  imageBase64: string;
+}): Promise<LocalVisionResult> {
+  try {
+    const body = await localApiRequest<{ provider: string; model: string; text: string }>(
+      "/model/vision",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          prompt: input.prompt ?? "Leia esta imagem e diga quais textos aparecem nela.",
+          imageBase64: input.imageBase64,
+        }),
+      },
+    );
+    return { ok: true, text: body.text, provider: body.provider, model: body.model };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "Falha ao testar a visão local.",
+    };
+  }
+}
+
+export type LocalTranscribeStatus =
+  | {
+      ok: boolean;
+      provider: "whisper_cpp";
+      available: true;
+      bin: string;
+      model: string;
+      language: string;
+      message: string;
+    }
+  | { ok: boolean; provider: "whisper_cpp"; available: false; message: string };
+
+export function getLocalTranscribeStatus() {
+  return localApiRequest<LocalTranscribeStatus>("/transcribe/status");
+}
+
+export type LocalTranscribeResult =
+  | {
+      ok: true;
+      text: string;
+      provider: string;
+      model: string;
+      language: string;
+      durationMs: number;
+    }
+  | { ok: false; message: string };
+
+export async function transcribeLocalFile(file: File): Promise<LocalTranscribeResult> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(localApiUrl("/transcribe/file"), { method: "POST", body: formData });
+    const body = await res.json();
+    if (!res.ok) {
+      return { ok: false, message: body?.error ?? `API local respondeu com status ${res.status}.` };
+    }
+    return {
+      ok: true,
+      text: body.text,
+      provider: body.provider,
+      model: body.model,
+      language: body.language,
+      durationMs: body.durationMs,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "Falha ao transcrever o áudio.",
+    };
+  }
 }
 
 export type LocalBridgeStatus = {
