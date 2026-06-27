@@ -1,121 +1,115 @@
-# Tunnel-Ready — preparação arquitetural (PR 5)
+# Tunnel-Ready — Olhar de Kairós
 
-Este documento descreve a arquitetura **futura** da ponte entre a Totalidade (nuvem) e a
-Kaline Local. **Nada aqui está implementado de fato.** Não há Cloudflare Tunnel, não há
-Cloudflare Worker, não há Queue, não há WebSocket externo, não há sync real. O que existe
-nesta fase é: configuração desativada por padrão, um endpoint de status honesto
-(`GET /bridge/status`) e uma tabela `inbox_events` já preparada no schema local.
+Este documento descreve a ponte entre a Totalidade (nuvem) e a Kaline Local. `disabled`
+continua sendo o padrão de fábrica. `pull_only` agora tem uma implementação real e
+deliberadamente pequena, chamada **Olhar de Kairós**: um pull único, sob demanda, de um
+snapshot consolidado e cifrado — não um mecanismo de sync genérico. Não há Cloudflare
+Tunnel, não há Worker dedicado à ponte (a Totalidade já é um Worker e só ganhou mais um
+endpoint REST de leitura), não há Queue, não há WebSocket, não há fila de eventos
+incrementais, não há retry automático, não há push em nenhuma direção.
 
 ## Regra central
 
 ```txt
 A Kaline Local não recebe comandos abertos da internet.
-A ponte futura deve usar inbox/envelopes/revisão.
+A ponte usa inbox/envelopes/revisão.
 Nada vindo da nuvem entra no Jardim automaticamente.
 ```
 
-Em outras palavras: mesmo quando o túnel existir, a nuvem nunca escreve diretamente em
-`registro_vivo`, `jardim_memorias`, `sedimentos` ou `decisoes`. Ela só pode depositar um
-**envelope** na inbox local, que fica pendente até revisão explícita da pessoa.
+Em outras palavras: a nuvem nunca escreve diretamente em `registro_vivo`,
+`jardim_memorias`, `sedimentos` ou `decisoes`. Ela só serve um **snapshot** que a Kaline
+Local busca por conta própria; o conteúdo só entra como **envelope** na inbox local, que
+fica pendente até revisão explícita da pessoa.
 
-## Fluxo futuro (alto nível)
+## Fluxo real (Olhar de Kairós)
 
 ```txt
-Totalidade / Nuvem
-    ↓
-envelopes controlados
-    ↓
-Inbox da Kaline Local
-    ↓
-Revisão explícita
-    ↓
-Registro/Jardim somente com confirmação
+Totalidade (Worker)                 Kaline Local
+GET /api/bridge/olhar-de-kairos  ←  POST /bridge/pull (disparado pela pessoa)
+  monta snapshot (contexto,            valida modo pull_only
+  identidade, sedimentação,            faz o GET, decifra
+  reuniões, últimas 25 msgs)           grava 1 evento por seção em inbox_events
+  cifra com chave compartilhada        (trust_level='untrusted', status='pending')
+        ↓                                       ↓
+   resposta cifrada                    revisão explícita via GET/PATCH /inbox
 ```
 
-1. **Totalidade / Nuvem** — o app online produz um envelope (ex.: um evento, uma sugestão,
-   uma memória candidata).
-2. **Envelopes controlados** — o envelope é assinado/identificado, mas tratado como
-   **não confiável por padrão** até prova em contrário.
-3. **Inbox da Kaline Local** — o envelope é gravado em `inbox_events`, com
-   `status = 'pending'` e `trust_level` conforme a origem.
-4. **Revisão explícita** — a pessoa abre a inbox (UI futura) e decide: aceitar, descartar
-   ou marcar erro. Nada é processado sozinho.
-5. **Registro/Jardim somente com confirmação** — só depois de aceito, o conteúdo pode
-   gerar uma entrada em Registro Vivo, Jardim, Sedimentos etc. — e isso é trabalho de um
-   PR futuro, não deste.
+1. **Totalidade (nuvem)** — `GET /api/bridge/olhar-de-kairos`
+   (`src/routes/api/bridge/olhar-de-kairos.ts`) exige bearer token de uma sessão Supabase
+   válida, monta um snapshot fixo (contexto vivo, identidade ativa, sedimentação, últimas
+   reuniões transcritas, últimas 25 mensagens) e cifra com AES-256-GCM usando
+   `KALINE_BRIDGE_SHARED_KEY`. Sem rede com o estado de "o que falta enviar" — cada
+   chamada recalcula o snapshot atual do zero.
+2. **Kaline Local** — `POST /bridge/pull` (`local-server/src/routes/bridge.ts`) só roda
+   quando `KALINE_TUNNEL_MODE=pull_only`. Chama o endpoint acima com
+   `KALINE_BRIDGE_USER_TOKEN`, decifra a resposta com `KALINE_BRIDGE_SHARED_KEY`
+   (`local-server/src/services/kairos-crypto.ts`) e deposita cada seção do snapshot como
+   um evento separado em `inbox_events`, sempre `trust_level='untrusted'` e
+   `status='pending'` (`local-server/src/services/kairos-bridge.service.ts`).
+3. **Revisão explícita** — a pessoa usa `GET /inbox` e `PATCH /inbox/:id` para aceitar ou
+   descartar cada evento. Nada é processado sozinho.
+4. **Registro/Jardim somente com confirmação** — gerar uma entrada real em Registro Vivo,
+   Jardim ou Sedimentos a partir de um evento aceito continua sendo trabalho de um PR
+   futuro (a UI de revisão também).
 
-## Configuração (desativada por padrão)
+`POST /bridge/pull` é sempre disparado pela pessoa (ou por automação local explícita) —
+não há polling automático embutido nesta fase.
 
-`local-server/.env.example` já traz as variáveis necessárias, todas inertes nesta fase:
+## Configuração
 
 ```env
-KALINE_TUNNEL_MODE=disabled
+# Totalidade (.env da raiz, lado nuvem)
+KALINE_BRIDGE_SHARED_KEY=
+
+# local-server/.env (lado local)
+KALINE_TUNNEL_MODE=disabled          # mude para pull_only para habilitar o pull
 KALINE_DEVICE_ID=
-KALINE_CLOUD_BRIDGE_URL=
-KALINE_BRIDGE_PUBLIC_KEY=
+KALINE_CLOUD_BRIDGE_URL=             # ex.: https://totalidade.tonyus.dev
+KALINE_BRIDGE_PUBLIC_KEY=            # reservado para assinatura futura, ainda não usado
+KALINE_BRIDGE_SHARED_KEY=            # idêntica à da Totalidade
+KALINE_BRIDGE_USER_TOKEN=            # token de sessão (bearer) da sua conta na Totalidade
 ```
 
-Modos previstos para `KALINE_TUNNEL_MODE` (apenas `disabled` está implementado hoje):
+Modos de `KALINE_TUNNEL_MODE`:
 
-- `disabled` — padrão. Nenhuma comunicação com a nuvem. **Único modo real neste PR.**
-- `pull_only` — (futuro) a Kaline Local periodicamente busca envelopes pendentes na nuvem
-  e os deposita na inbox local. Nunca aceita automaticamente.
-- `manual_import` — (futuro) a pessoa importa manualmente um arquivo/envelope exportado da
-  Totalidade, sem qualquer conexão de rede contínua.
-
-`KALINE_DEVICE_ID`, `KALINE_CLOUD_BRIDGE_URL` e `KALINE_BRIDGE_PUBLIC_KEY` ficam vazios por
-padrão e só fazem sentido quando um modo diferente de `disabled` for implementado.
+- `disabled` — padrão. Nenhuma comunicação com a nuvem.
+- `pull_only` — **implementado**. `POST /bridge/pull` puxa o Olhar de Kairós sob demanda.
+- `manual_import` — (futuro) importação manual de arquivo/envelope exportado da
+  Totalidade, sem qualquer conexão de rede.
 
 ## `GET /bridge/status`
-
-Endpoint já implementado neste PR. Não faz pull, não faz push, não abre conexão nenhuma —
-apenas reporta a configuração local de forma honesta, sem expor secrets.
 
 ```json
 {
   "ok": true,
-  "mode": "disabled",
-  "deviceIdConfigured": false,
-  "cloudBridgeConfigured": false,
+  "mode": "pull_only",
+  "deviceIdConfigured": true,
+  "cloudBridgeConfigured": true,
   "bridgePublicKeyConfigured": false,
-  "lastCloudCheckAt": null,
-  "message": "Ponte com nuvem ainda não implementada. Modo tunnel-ready está desativado."
+  "bridgeSharedKeyConfigured": true,
+  "lastCloudCheckAt": "2026-06-27T12:00:00.000Z",
+  "lastError": null,
+  "message": "Olhar de Kairós configurado. Use POST /bridge/pull para puxar o snapshot sob demanda."
 }
 ```
 
-## `inbox_events` — já preparada no schema
+`lastCloudCheckAt` e `lastError` agora refletem a última tentativa real de pull (sucesso
+ou erro) — não são mais fixos em `null`.
 
-A tabela `inbox_events` já existe em `local-server/src/db/schema.sql` desde o PR 2, com o
-comentário "Preparado para a ponte futura". Ela já cobre o necessário para este PR:
+## `inbox_events`
 
-```sql
-CREATE TABLE IF NOT EXISTS inbox_events (
-  id TEXT PRIMARY KEY,
-  source TEXT NOT NULL,
-  type TEXT NOT NULL,
-  title TEXT,
-  payload_json TEXT NOT NULL,
-  trust_level TEXT NOT NULL CHECK (trust_level IN ('local', 'untrusted', 'trusted')) DEFAULT 'local',
-  status TEXT NOT NULL CHECK (status IN ('pending', 'accepted', 'discarded', 'processed', 'error')) DEFAULT 'pending',
-  received_at TEXT NOT NULL,
-  processed_at TEXT,
-  error TEXT,
-  metadata_json TEXT
-);
-```
+Schema inalterado (`local-server/src/db/schema.sql`). O Olhar de Kairós usa exatamente o
+que já existia: `trust_level` em `untrusted` para tudo que vier da nuvem,
+`status='pending'` até revisão.
 
-Já existem rotas `GET/POST /inbox` e `PATCH /inbox/:id` (de PRs anteriores) que permitem
-criar e revisar eventos manualmente — hoje usadas apenas para testes locais e preparação,
-**nunca alimentadas automaticamente pela nuvem**.
+## O que continua como pendência real para PR futuro
 
-## O que fica como pendência real para PR futuro
-
-- Implementação real de Cloudflare Tunnel/Worker.
-- Implementação real de `pull_only`/`manual_import`.
 - UI de revisão de inbox (lista de eventos pendentes, aceitar/descartar).
-- Assinatura/verificação criptográfica dos envelopes (`bridgePublicKey`).
-- Atualização real de `lastCloudCheckAt` (hoje sempre `null`, fixo no código).
-
-Nenhum desses itens deve ser implementado "de surpresa" em PRs futuros sem que a regra
-central deste documento continue valendo: revisão explícita antes de qualquer escrita em
-Registro/Jardim.
+- Assinatura/verificação criptográfica do snapshot via `bridgePublicKey` (hoje a
+  confidencialidade vem de AES-GCM com chave compartilhada; não há verificação de
+  autenticidade do device de origem além do bearer token da sessão).
+- Geração de entrada real em Registro Vivo/Jardim/Sedimentos a partir de evento aceito.
+- `manual_import`.
+- Qualquer forma de sync incremental, fila ou push — fora de escopo por decisão
+  deliberada, não por falta de tempo. O Olhar de Kairós é, por design, um pull único de
+  snapshot — não deve evoluir para um mecanismo de sincronização genérico.
