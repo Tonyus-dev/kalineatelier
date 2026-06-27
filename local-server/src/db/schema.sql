@@ -147,6 +147,18 @@ CREATE TABLE IF NOT EXISTS camara_segmentos (
 );
 CREATE INDEX IF NOT EXISTS idx_camara_segmentos_sessao ON camara_segmentos(sessao_id, ordem);
 
+-- Livros & Resumos: texto já extraído no cliente (PDF/DOCX/TXT), fichamento
+-- gerado opcionalmente via modelo local.
+CREATE TABLE IF NOT EXISTS livros (
+  id TEXT PRIMARY KEY,
+  titulo TEXT NOT NULL,
+  autor TEXT,
+  texto_extraido TEXT NOT NULL,
+  resumo TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS inbox_events (
   id TEXT PRIMARY KEY,
   source TEXT NOT NULL,

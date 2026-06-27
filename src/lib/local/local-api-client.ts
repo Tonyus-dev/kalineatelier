@@ -652,6 +652,37 @@ export function criarLocalCamaraKairos(
   });
 }
 
+// --- Livros & Resumos ---
+
+export type LocalLivro = {
+  id: string;
+  titulo: string;
+  autor: string | null;
+  texto_extraido: string;
+  resumo: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export function listLocalLivros() {
+  return localApiRequest<{ livros: LocalLivro[] }>("/livros");
+}
+
+export function createLocalLivro(input: { titulo: string; autor?: string; texto_extraido: string }) {
+  return localApiRequest<{ livro: LocalLivro }>("/livros", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteLocalLivro(id: string) {
+  return localApiRequest<{ ok: true }>(`/livros/${id}`, { method: "DELETE" });
+}
+
+export function gerarLocalResumoLivro(id: string) {
+  return localApiRequest<{ resumo: string }>(`/livros/${id}/resumo`, { method: "POST" });
+}
+
 // --- Voz (Kokoro, voz Dora) com fallback honesto para o navegador ---
 
 /**
