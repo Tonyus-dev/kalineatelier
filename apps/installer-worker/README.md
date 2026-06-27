@@ -2,7 +2,8 @@
 
 Portal público da Kaline Offline: um HTML único que detecta o sistema do
 visitante e entrega o bootstrap correto (Linux Mint Xfce ou Windows),
-publicado via Cloudflare Worker com Static Assets.
+publicado via Cloudflare Worker (HTML embutido como texto puro, sem Static
+Assets).
 
 Este pacote **não instala nada por conta própria**. Ele só serve arquivos
 públicos. A instalação real continua acontecendo no computador do usuário,
@@ -13,7 +14,7 @@ para a arquitetura completa em três camadas).
 
 ```
 apps/installer-worker/
-├─ src/index.ts        # Worker: roteia /health e /install/*, delega o resto às Static Assets
+├─ src/index.ts        # Worker: roteia /health, /install/* e / (HTML embutido como texto)
 ├─ public/index.html   # portal (HTML + CSS + JS embutidos, sem framework)
 ├─ install/             # bootstraps públicos baixáveis
 │  ├─ kaline-installer-linux-mint.sh
@@ -25,15 +26,16 @@ apps/installer-worker/
 └─ tsconfig.json
 ```
 
-Os arquivos em `install/` são importados como texto puro pelo Worker (regra
-`Text` em `wrangler.toml`) e servidos nas rotas `/install/*` — não há cópia
-duplicada deles em `public/`.
+O `public/index.html` e os arquivos em `install/` são todos importados como
+texto puro pelo Worker (regra `Text` em `wrangler.toml`) — sem Static Assets,
+de propósito: algumas contas Cloudflare bloqueiam (403) a criação de Workers
+novos que usam esse binding.
 
 ## Rotas
 
 | Rota                          | Conteúdo                                   |
 |--------------------------------|---------------------------------------------|
-| `GET /`                        | `public/index.html` (via Static Assets)     |
+| `GET /`                        | `public/index.html` (embutido como texto)   |
 | `GET /install/linux-mint.sh`        | bootstrap Linux Mint Xfce              |
 | `GET /install/linux-mint.desktop`   | launcher `.desktop` do bootstrap Linux |
 | `GET /install/windows.bat`          | bootstrap Windows (`.bat`)             |

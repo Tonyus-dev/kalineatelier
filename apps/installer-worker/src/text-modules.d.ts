@@ -1,5 +1,6 @@
-// Os bootstraps em ../install/* são importados como texto puro (regra `Text`
-// em wrangler.toml). Declarações para o TypeScript reconhecer essas extensões.
+// O HTML do portal e os bootstraps em ../install/* são importados como texto
+// puro (regra `Text` em wrangler.toml). Declarações para o TypeScript
+// reconhecer essas extensões.
 declare module "*.sh" {
   const content: string;
   export default content;
@@ -16,6 +17,11 @@ declare module "*.bat" {
 }
 
 declare module "*.desktop" {
+  const content: string;
+  export default content;
+}
+
+declare module "*.html" {
   const content: string;
   export default content;
 }
