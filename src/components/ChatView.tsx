@@ -2,19 +2,16 @@ import { kalineAvatar } from "@/lib/brand-assets";
 import { kharisAvatar } from "@/lib/brand-assets";
 import { kuanyinAvatar } from "@/lib/brand-assets";
 import { Link, useSearch } from "@tanstack/react-router";
-import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type FileUIPart, type UIMessage } from "ai";
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { LazyMarkdown } from "@/components/LazyMarkdown";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Send, Square, Mic, Loader2, Volume2, Paperclip, X, GitBranch } from "lucide-react";
+import { Send, Mic, Loader2, Volume2, Square, Paperclip, X, GitBranch } from "lucide-react";
 import { KittScanner, type KittState } from "@/components/KittScanner";
 import { setKittPulse, useKittPulse } from "@/lib/kitt-pulse";
 import { toast } from "sonner";
 import { useProfile } from "@/lib/use-profile";
-
-import { readPresencaNota } from "@/lib/use-presenca-regime";
+import { useOfflineChat } from "@/lib/use-offline-chat";
+import { transcribeLocalFile, getLocalThread } from "@/lib/local/local-api-client";
 import { useTTS } from "@/lib/use-tts";
 import { extractActions, KuanyinActionCard } from "@/components/KuanyinActionCard";
 
@@ -22,11 +19,13 @@ import { extractActions, KuanyinActionCard } from "@/components/KuanyinActionCar
 // renomeado em 20260626010000).
 type Facet = "kaline" | "kharis" | "kuanyin";
 
+// Chat offline (local-server) é texto-only: sem pipeline de visão/documentos
+// embutido no `/chat`. Imagem e PDF foram descartados; Word/.txt continuam
+// aceitos porque já são extraídos para texto no próprio navegador.
 type Attachment = {
   name: string;
-  kind: "text" | "image" | "pdf";
+  kind: "text";
   content: string;
-  mediaType?: string;
 };
 
 type FacetTheme = {
@@ -309,7 +308,6 @@ export function ChatView({ threadId }: ChatViewProps) {
   const search = useSearch({ strict: false });
   const seed = typeof search.seed === "string" ? search.seed : undefined;
 
-  const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(null);
   const [facet, setFacet] = useState<Facet>("kharis");
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const attachmentRef = useRef<HTMLInputElement>(null);
@@ -322,87 +320,17 @@ export function ChatView({ threadId }: ChatViewProps) {
   const tts = useTTS();
 
   useEffect(() => {
-    setInitialMessages(null);
     seededRef.current = false;
     stickToBottomRef.current = true;
-
-    void (async () => {
-      const { data: thread } = await supabase
-        .from("chat_threads")
-        .select("facet")
-        .eq("id", threadId)
-        .maybeSingle();
-      const nextFacet = (thread?.facet as Facet | undefined) ?? "kharis";
-      setFacet(nextFacet);
-
-      const { data } = await supabase
-        .from("chat_messages")
-        .select("id, role, content")
-        .eq("thread_id", threadId)
-        .order("created_at");
-      const msgs: UIMessage[] = (data ?? []).map((m) => ({
-        id: m.id,
-        role: m.role as "user" | "assistant",
-        parts: [{ type: "text", text: m.content }],
-      }));
-      setInitialMessages(msgs);
-    })();
+    void getLocalThread(threadId)
+      .then(({ thread }) => setFacet((thread.facet as Facet) ?? "kharis"))
+      .catch(() => setFacet("kharis"));
   }, [threadId]);
 
-  const transport = useMemo(
-    () =>
-      new DefaultChatTransport({
-        api: "/api/chat",
-        body: { facet, threadId },
-        fetch: async (input, init) => {
-          const { data } = await supabase.auth.getSession();
-          const token = data.session?.access_token;
-          const headers = new Headers(init?.headers);
-          if (token) headers.set("Authorization", `Bearer ${token}`);
+  const { messages, status, sendMessage } = useOfflineChat(threadId, facet);
+  const initialMessages = messages;
 
-          let body = init?.body;
-          if (typeof body === "string") {
-            try {
-              const nota = await readPresencaNota();
-              if (nota.trim()) {
-                const parsed = JSON.parse(body) as Record<string, unknown>;
-                parsed.presencaNota = nota;
-                body = JSON.stringify(parsed);
-                headers.set("content-type", "application/json");
-              }
-            } catch {
-              // segue sem nota
-            }
-          }
-
-          const res = await fetch(input, { ...init, headers, body });
-          if (!res.ok) {
-            const detail = await res.text().catch(() => "");
-            throw new Error(detail || `Falha ao enviar (HTTP ${res.status})`);
-          }
-          return res;
-        },
-      }),
-    [facet, threadId],
-  );
-
-  const { messages, setMessages, sendMessage, status, stop } = useChat({
-    id: `${threadId}:${facet}`,
-    messages: initialMessages ?? [],
-    transport,
-    onError: (err) => {
-      toast.error(err.message || "Falha ao enviar mensagem. Tente novamente.");
-    },
-  });
-
-  // O useChat só usa `messages` para construir a instância Chat na 1ª vez que o
-  // id aparece; como o histórico chega assíncrono (depois do null inicial),
-  // empurramos manualmente assim que carrega — senão a conversa fica vazia.
-  useEffect(() => {
-    if (initialMessages !== null) setMessages(initialMessages);
-  }, [initialMessages, setMessages]);
-
-  const isLoading = status === "submitted" || status === "streaming";
+  const isLoading = status === "loading" || status === "sending";
   const theme = FACET_THEMES[facet];
 
   // Propaga a cor da faceta ativa para o fundo ambiente da página (ver --facet-accent
@@ -421,7 +349,9 @@ export function ChatView({ threadId }: ChatViewProps) {
       return;
     }
     seededRef.current = true;
-    void sendMessage({ text: seed });
+    void sendMessage(seed).catch((err) => {
+      toast.error(err instanceof Error ? err.message : "Falha ao enviar mensagem.");
+    });
   }, [initialMessages, seed, sendMessage]);
 
   const handleScroll = useCallback(() => {
@@ -452,32 +382,18 @@ export function ChatView({ threadId }: ChatViewProps) {
   const userInitial = (userLabel[0] ?? "K").toUpperCase();
   function buildOutgoingText(baseText: string, list: Attachment[]) {
     const text = baseText.trim();
-    const textBlocks = list
-      .filter((file) => file.kind === "text")
-      .map((file) => `[Anexo de texto: ${file.name}]\n${file.content}`);
+    const textBlocks = list.map((file) => `[Anexo de texto: ${file.name}]\n${file.content}`);
     return [text, ...textBlocks].filter(Boolean).join("\n\n");
-  }
-
-  // Imagens e PDFs viram file parts multimodais; planilhas/Word/textos já foram
-  // extraídos para texto e entram via buildOutgoingText.
-  function buildFileParts(list: Attachment[]): FileUIPart[] {
-    return list
-      .filter((file) => file.kind === "image" || file.kind === "pdf")
-      .map((file) => ({
-        type: "file" as const,
-        mediaType: file.mediaType ?? (file.kind === "pdf" ? "application/pdf" : "image/png"),
-        filename: file.name,
-        url: file.content,
-      }));
   }
 
   // Envia texto + anexos numa tacada (usado pelo botão Enviar e pelo microfone).
   function enviar(baseText: string, list: Attachment[]) {
     const text = buildOutgoingText(baseText, list);
-    const fileParts = buildFileParts(list);
-    if ((!text && fileParts.length === 0) || isLoading) return;
+    if (!text || isLoading) return;
     stickToBottomRef.current = true;
-    void sendMessage(text ? { text, files: fileParts } : { files: fileParts });
+    void sendMessage(text).catch((err) => {
+      toast.error(err instanceof Error ? err.message : "Falha ao enviar mensagem.");
+    });
     setInput("");
     setAttachments([]);
     requestAnimationFrame(() => composerRef.current?.focus());
@@ -485,15 +401,6 @@ export function ChatView({ threadId }: ChatViewProps) {
 
   function submitMessage() {
     enviar(input, attachments);
-  }
-
-  function readAsDataUrl(file: File): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
   }
 
   async function onPickAttachment(e: React.ChangeEvent<HTMLInputElement>) {
@@ -505,34 +412,19 @@ export function ChatView({ threadId }: ChatViewProps) {
         toast.error(`${file.name} excede 10 MB.`);
         continue;
       }
-      const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
       const isDocx = /\.docx$/i.test(file.name);
       try {
-        if (file.type.startsWith("image/")) {
-          next.push({
-            name: file.name,
-            kind: "image",
-            content: await readAsDataUrl(file),
-            mediaType: file.type || "image/png",
-          });
-        } else if (isPdf) {
-          next.push({
-            name: file.name,
-            kind: "pdf",
-            content: await readAsDataUrl(file),
-            mediaType: "application/pdf",
-          });
-        } else if (isDocx) {
+        if (isDocx) {
           const mammoth = await import("mammoth");
           const { value } = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
           next.push({ name: file.name, kind: "text", content: value });
         } else if (file.type === "text/plain" || /\.txt$/i.test(file.name)) {
           next.push({ name: file.name, kind: "text", content: await file.text() });
         } else {
-          // .md/.csv/.json e outros texto-crus são recusados: anexo cru injetado no
-          // prompt amplia a superfície de prompt injection. Aceitos: imagem, PDF,
-          // Word e .txt. Para o resto, o usuário cola o conteúdo no chat.
-          toast.error(`${file.name}: formato não aceito (use imagem, PDF, Word ou .txt).`);
+          // Chat offline é texto-only (local-server `/chat` não tem pipeline de
+          // visão/documentos). Imagem e PDF foram descartados; só Word/.txt,
+          // já extraídos para texto no navegador.
+          toast.error(`${file.name}: formato não aceito offline (use Word ou .txt).`);
         }
       } catch {
         toast.error(`Falha ao ler ${file.name}.`);
@@ -543,8 +435,7 @@ export function ChatView({ threadId }: ChatViewProps) {
   }
 
   useEffect(() => {
-    if (status === "submitted") setKittPulse("chat", "thinking");
-    else if (status === "streaming") setKittPulse("chat", "speaking");
+    if (status === "sending") setKittPulse("chat", "thinking");
     else setKittPulse("chat", null);
     return () => setKittPulse("chat", null);
   }, [status]);
@@ -601,23 +492,17 @@ export function ChatView({ threadId }: ChatViewProps) {
         setKittPulse("voice", "transcribing");
 
         try {
-          const fd = new FormData();
           const ext =
             ({ "audio/webm": "webm", "audio/mp4": "mp4" } as Record<string, string>)[
               rec.mimeType.split(";")[0]
             ] ?? "webm";
-          fd.append("file", blob, `recording.${ext}`);
-          fd.append("revise", "1"); // pede revisão por LLM no servidor (só no chat)
-          const { data } = await supabase.auth.getSession();
-          const token = data.session?.access_token;
-          const res = await fetch("/api/transcribe", {
-            method: "POST",
-            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-            body: fd,
-          });
-          if (!res.ok) throw new Error(await res.text());
-          const parsed = (await res.json()) as { text?: string };
-          const text = (parsed.text ?? "").trim();
+          const file = new File([blob], `recording.${ext}`, { type: rec.mimeType });
+          // Revisão por LLM era feita server-side (`revise=1`) no chat online;
+          // o local-server só transcreve, então a revisão fica por conta de
+          // `quickReview()` abaixo, client-side.
+          const result = await transcribeLocalFile(file);
+          if (!result.ok) throw new Error(result.message);
+          const text = result.text.trim();
           setMicState("idle");
           if (text) {
             // Envia direto: combina o que já estava digitado com a transcrição.
@@ -663,28 +548,18 @@ export function ChatView({ threadId }: ChatViewProps) {
         <div className="mx-auto max-w-3xl space-y-4 sm:space-y-6">
           {initialMessages === null && <HistorySkeleton theme={theme} />}
 
-          {initialMessages !== null && messages.length === 0 && !isLoading && (
+          {initialMessages !== null && messages?.length === 0 && !isLoading && (
             <p className="mt-16 px-4 text-center text-sm text-[color:var(--ivory-dim)] sm:mt-20">
               {theme.emptyState}
             </p>
           )}
 
-          {messages.map((m) => {
-            const rawText = m.parts
-              .map((p) => {
-                if (p.type === "text") return p.text;
-                if (p.type === "file" && p.mediaType?.startsWith("image/")) {
-                  return `[Imagem enviada para interpretação: ${p.filename ?? "imagem"}]`;
-                }
-                return "";
-              })
-              .filter(Boolean)
-              .join("\n\n");
+          {(messages ?? []).map((m) => {
             const isAssistant = m.role === "assistant";
             const { clean, actions } =
               isAssistant && facet === "kuanyin"
-                ? extractActions(rawText)
-                : { clean: rawText, actions: [] };
+                ? extractActions(m.text)
+                : { clean: m.text, actions: [] };
 
             return (
               <div key={m.id}>
@@ -707,9 +582,7 @@ export function ChatView({ threadId }: ChatViewProps) {
             );
           })}
 
-          {status === "submitted" && (
-            <TypingDots label={theme.thinkingLabel} color={theme.accent} />
-          )}
+          {status === "sending" && <TypingDots label={theme.thinkingLabel} color={theme.accent} />}
           <div ref={bottomRef} aria-hidden className="h-1" />
         </div>
       </div>
@@ -736,12 +609,7 @@ export function ChatView({ threadId }: ChatViewProps) {
                   key={`${file.name}-${index}`}
                   className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border)] bg-card px-2 py-1 text-xs text-[color:var(--ivory-dim)]"
                 >
-                  {file.kind === "image"
-                    ? "Imagem para interpretar"
-                    : file.kind === "pdf"
-                      ? "PDF para leitura"
-                      : "Texto"}
-                  : {file.name}
+                  Texto: {file.name}
                   <button
                     type="button"
                     onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== index))}
@@ -757,7 +625,7 @@ export function ChatView({ threadId }: ChatViewProps) {
             <input
               ref={attachmentRef}
               type="file"
-              accept="image/*,application/pdf,.pdf,text/plain,.txt,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              accept="text/plain,.txt,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               multiple
               hidden
               onChange={onPickAttachment}
@@ -769,8 +637,8 @@ export function ChatView({ threadId }: ChatViewProps) {
               variant="outline"
               size="icon"
               className="h-10 w-10 shrink-0"
-              aria-label="Anexar imagem, PDF, Word ou .txt"
-              title="Anexar imagem, PDF, Word ou .txt"
+              aria-label="Anexar Word ou .txt"
+              title="Anexar Word ou .txt"
             >
               <Paperclip className="h-4 w-4" />
             </Button>
@@ -829,26 +697,18 @@ export function ChatView({ threadId }: ChatViewProps) {
               )}
             </Button>
 
-            {isLoading ? (
-              <Button
-                type="button"
-                onClick={() => stop()}
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 shrink-0"
-              >
-                <Square className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                disabled={!input.trim() && attachments.length === 0}
-                size="icon"
-                className={`h-10 w-10 shrink-0 ${theme.sendClass}`}
-              >
+            <Button
+              type="submit"
+              disabled={isLoading || (!input.trim() && attachments.length === 0)}
+              size="icon"
+              className={`h-10 w-10 shrink-0 ${theme.sendClass}`}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
                 <Send className="h-4 w-4" />
-              </Button>
-            )}
+              )}
+            </Button>
           </div>
         </div>
       </form>

@@ -83,34 +83,54 @@ async function localApiRequest<T>(path: string, init?: RequestInit): Promise<T> 
   return (await res.json()) as T;
 }
 
+export type LocalThread = {
+  id: string;
+  title: string;
+  facet: string;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+};
+
+export type LocalChatMessage = {
+  id: string;
+  thread_id: string;
+  role: "system" | "user" | "assistant";
+  content: string;
+  created_at: string;
+  metadata_json: string | null;
+};
+
 export function listLocalThreads() {
-  return localApiRequest<{ threads: unknown[] }>("/threads");
+  return localApiRequest<{ threads: LocalThread[] }>("/threads");
 }
 
 export function createLocalThread(input: { title?: string; facet: string }) {
-  return localApiRequest<{ thread: unknown }>("/threads", {
+  return localApiRequest<{ thread: LocalThread }>("/threads", {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function getLocalThread(threadId: string) {
-  return localApiRequest<{ thread: unknown }>(`/threads/${threadId}`);
+  return localApiRequest<{ thread: LocalThread }>(`/threads/${threadId}`);
 }
 
 export function listLocalMessages(threadId: string) {
-  return localApiRequest<{ messages: unknown[] }>(`/messages/${threadId}`);
+  return localApiRequest<{ messages: LocalChatMessage[] }>(`/messages/${threadId}`);
 }
 
 export function sendLocalChatMessage(input: {
   threadId?: string;
   message: string;
   facet?: string;
+  system?: string;
 }) {
-  return localApiRequest<{ thread: unknown; userMessage: unknown; assistantMessage: unknown }>(
-    "/chat",
-    { method: "POST", body: JSON.stringify(input) },
-  );
+  return localApiRequest<{
+    thread: LocalThread;
+    userMessage: LocalChatMessage;
+    assistantMessage: LocalChatMessage;
+  }>("/chat", { method: "POST", body: JSON.stringify(input) });
 }
 
 export function listLocalRegistros(opts: { kind?: string; limit?: number; since?: string } = {}) {
