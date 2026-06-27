@@ -79,10 +79,10 @@ export const MODEL_CONFIG = {
   ollama: {
     baseUrl: env("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
     models: {
-      general: env("OLLAMA_MODEL_GENERAL", "qwen2.5:1.5b"),
-      coder: env("OLLAMA_MODEL_CODER", "qwen2.5-coder:1.5b"),
-      summary: env("OLLAMA_MODEL_SUMMARY", "qwen2.5:1.5b"),
-      vision: env("OLLAMA_MODEL_VISION", "qwen2.5:1.5b"),
+      general: env("OLLAMA_MODEL_GENERAL", "qwen3.5:0.8b"),
+      coder: env("OLLAMA_MODEL_CODER", "qwen3.5:0.8b"),
+      summary: env("OLLAMA_MODEL_SUMMARY", "qwen2.5:0.5b"),
+      vision: env("OLLAMA_MODEL_VISION", "qwen3.5:0.8b"),
     },
     requestTimeoutMs: Number(env("OLLAMA_REQUEST_TIMEOUT_MS", "120000")),
   },

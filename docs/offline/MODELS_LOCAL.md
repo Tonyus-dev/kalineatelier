@@ -29,33 +29,38 @@ modelo foi consultado. Use para testar a navegação, o banco local e a interfac
 ```env
 KALINE_MODEL_PROVIDER=ollama
 OLLAMA_BASE_URL=http://127.0.0.1:11434
-OLLAMA_MODEL_GENERAL=qwen3.5:4b
-OLLAMA_MODEL_SUMMARY=qwen3.5:4b
-OLLAMA_MODEL_CODER=qwen3.5:4b
-OLLAMA_MODEL_VISION=qwen3.5:4b
+OLLAMA_MODEL_GENERAL=qwen3.5:0.8b
+OLLAMA_MODEL_SUMMARY=qwen2.5:0.5b
+OLLAMA_MODEL_CODER=qwen3.5:0.8b
+OLLAMA_MODEL_VISION=qwen3.5:0.8b
 OLLAMA_REQUEST_TIMEOUT_MS=120000
 ```
+
+São dois modelos leves, pensados para rodar bem em máquinas modestas: `qwen3.5:0.8b` para
+texto geral, raciocínio leve e visão, e `qwen2.5:0.5b` para resumo (tarefa mais barata).
+Você pode trocar por modelos maiores no `.env` se a máquina permitir.
 
 #### 1. Instalar o Ollama
 
 Baixe em [ollama.com](https://ollama.com) e instale normalmente para o seu sistema.
 
-#### 2. Baixar o modelo principal
+#### 2. Baixar os modelos
 
 ```bash
-ollama pull qwen3.5:4b
+ollama pull qwen3.5:0.8b
+ollama pull qwen2.5:0.5b
 ```
 
-Esse mesmo modelo é usado para texto geral, resumo, raciocínio leve e visão
-(`OLLAMA_MODEL_GENERAL`, `OLLAMA_MODEL_SUMMARY`, `OLLAMA_MODEL_VISION`). O campo
-`OLLAMA_MODEL_CODER` aponta para o mesmo modelo apenas para não deixar buraco caso alguma
-área interna da Kaline chame esse papel — o trabalho de código pesado continua fora da
-Kaline, em ferramentas como VS Code/Codex/Claude/Cline.
+`qwen3.5:0.8b` cobre texto geral, raciocínio leve e visão
+(`OLLAMA_MODEL_GENERAL`, `OLLAMA_MODEL_VISION`); `qwen2.5:0.5b` cobre resumo
+(`OLLAMA_MODEL_SUMMARY`). O campo `OLLAMA_MODEL_CODER` aponta para o modelo geral apenas
+para não deixar buraco caso alguma área interna da Kaline chame esse papel — o trabalho de
+código pesado continua fora da Kaline, em ferramentas como VS Code/Codex/Claude/Cline.
 
 #### 3. Testar o modelo direto no Ollama
 
 ```bash
-ollama run qwen3.5:4b
+ollama run qwen3.5:0.8b
 ```
 
 Prompt de teste:

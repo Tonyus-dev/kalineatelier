@@ -12,7 +12,8 @@ não precisa de conta paga e por padrão não consome créditos de IA (provider 
 
 Opcional, apenas se quiser IA real:
 
-- [Ollama](https://ollama.com) com o modelo `qwen3.5:4b` para texto/resumo/visão, **e/ou**
+- [Ollama](https://ollama.com) com os modelos `qwen3.5:0.8b` e `qwen2.5:0.5b` para
+  texto/resumo/visão, **e/ou**
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp) com o modelo `ggml-small.bin`
   para transcrição de áudio, **e/ou**
 - uma chave de API da [OpenRouter](https://openrouter.ai).

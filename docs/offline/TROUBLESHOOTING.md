@@ -70,13 +70,13 @@ de fingir sucesso; com `=true`, ele cai para o mock mas marca a resposta com
 ## Ollama ativo, mas modelo não encontrado
 
 ```txt
-"message": "Ollama ativo, mas o modelo qwen3.5:4b não foi encontrado. Rode: ollama pull qwen3.5:4b"
+"message": "Ollama ativo, mas o modelo qwen3.5:0.8b não foi encontrado. Rode: ollama pull qwen3.5:0.8b"
 ```
 
-Baixe o modelo indicado:
+Baixe o modelo indicado (a mensagem aponta exatamente qual falta):
 
 ```bash
-ollama pull qwen3.5:4b
+ollama pull qwen3.5:0.8b
 ```
 
 ## Whisper indisponível

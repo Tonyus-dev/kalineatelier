@@ -185,7 +185,7 @@ export function AtelierConfiguracoes({ disabled }: { disabled: boolean }) {
           </div>
           {!model?.available && model?.provider === "ollama" && (
             <p className="text-xs text-muted-foreground pt-1">
-              Abra o Ollama e rode: ollama pull {String(model?.models?.general ?? "qwen3.5:4b")}
+              Abra o Ollama e rode: ollama pull {String(model?.models?.general ?? "qwen3.5:0.8b")}
             </p>
           )}
 
