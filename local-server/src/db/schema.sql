@@ -123,6 +123,30 @@ CREATE TABLE IF NOT EXISTS presenca_regime (
 
 -- Preparado para a ponte futura. Nesta fase só recebe eventos locais via API,
 -- sem criptografia, Worker ou sync.
+-- Câmara de Eco: sessões (texto livre ou áudio segmentado) + análise opcional.
+CREATE TABLE IF NOT EXISTS camara_sessoes (
+  id TEXT PRIMARY KEY,
+  titulo TEXT NOT NULL,
+  origem TEXT NOT NULL CHECK (origem IN ('audio', 'texto')),
+  texto TEXT,
+  analise_json TEXT,
+  analise_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS camara_segmentos (
+  id TEXT PRIMARY KEY,
+  sessao_id TEXT NOT NULL REFERENCES camara_sessoes(id) ON DELETE CASCADE,
+  ordem INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'processing', 'transcribed', 'failed')) DEFAULT 'pending',
+  transcricao TEXT,
+  erro TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_camara_segmentos_sessao ON camara_segmentos(sessao_id, ordem);
+
 CREATE TABLE IF NOT EXISTS inbox_events (
   id TEXT PRIMARY KEY,
   source TEXT NOT NULL,

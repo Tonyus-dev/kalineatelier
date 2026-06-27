@@ -557,6 +557,101 @@ export function listLocalMeetings() {
   return localApiRequest<{ meetings: unknown[] }>("/meetings");
 }
 
+// --- Câmara de Eco (sessões de escuta, texto ou áudio segmentado) ---
+
+export function listLocalCamaraSessoes() {
+  return localApiRequest<{ sessoes: unknown[] }>("/camara/sessoes");
+}
+
+export function createLocalCamaraSessao(input: {
+  titulo: string;
+  origem: "audio" | "texto";
+  texto?: string;
+}) {
+  return localApiRequest<{ sessao: unknown }>("/camara/sessoes", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getLocalCamaraSessao(id: string) {
+  return localApiRequest<{ sessao: unknown; segmentos: unknown[] }>(`/camara/sessoes/${id}`);
+}
+
+export function deleteLocalCamaraSessao(id: string) {
+  return localApiRequest<{ ok: true }>(`/camara/sessoes/${id}`, { method: "DELETE" });
+}
+
+export function createLocalCamaraSegmento(sessaoId: string) {
+  return localApiRequest<{ segmento: unknown }>(`/camara/sessoes/${sessaoId}/segmentos`, {
+    method: "POST",
+  });
+}
+
+export type LocalCamaraTranscreverResult =
+  | { ok: true; text: string }
+  | { ok: false; error: string };
+
+export async function transcreverLocalCamaraSegmento(
+  segmentoId: string,
+  file: Blob,
+): Promise<LocalCamaraTranscreverResult> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file, "segmento.webm");
+    const res = await fetch(localApiUrl(`/camara/segmentos/${segmentoId}/transcrever`), {
+      method: "POST",
+      body: formData,
+    });
+    const body = await res.json();
+    if (!res.ok) return { ok: false, error: body?.error ?? `API local respondeu ${res.status}.` };
+    return { ok: true, text: body.text };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Falha ao transcrever o segmento.",
+    };
+  }
+}
+
+export function analisarLocalCamaraSessao(sessaoId: string) {
+  return localApiRequest<{
+    resumo_operacional: string;
+    interlocutores: { nome: string; confianca: string }[];
+    temas: string[];
+    decisoes: string[];
+    sinais: string[];
+    proximos_gestos: string[];
+    candidatos_revisao: string[];
+  }>(`/camara/sessoes/${sessaoId}/analisar`, { method: "POST" });
+}
+
+export function semearLocalCamaraHipotese(
+  sessaoId: string,
+  input: { title: string; body: string; origem: string },
+) {
+  return localApiRequest<{ id: string }>(`/camara/sessoes/${sessaoId}/semear`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function criarLocalCamaraKairos(
+  sessaoId: string,
+  input: {
+    titulo: string;
+    descricao?: string;
+    inicio: string;
+    fim?: string | null;
+    tipo?: string;
+  },
+) {
+  return localApiRequest<{ id: string }>(`/camara/sessoes/${sessaoId}/kairos`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 // --- Voz (Kokoro, voz Dora) com fallback honesto para o navegador ---
 
 /**

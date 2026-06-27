@@ -31,6 +31,7 @@ import { registerTtsRoutes } from "./routes/tts.js";
 import { registerMeetingsRoutes } from "./routes/meetings.js";
 import { registerAgendaRoutes } from "./routes/agenda.js";
 import { registerPresencaRoutes } from "./routes/presenca.js";
+import { registerCamaraRoutes } from "./routes/camara.js";
 
 runMigrations(getDb());
 
@@ -89,6 +90,7 @@ await registerInboxRoutes(app);
 await registerReportsRoutes(app);
 await registerAgendaRoutes(app);
 await registerPresencaRoutes(app);
+await registerCamaraRoutes(app);
 
 async function shutdown(signal: string): Promise<void> {
   app.log.info(`Recebido ${signal}. Encerrando a Kaline Local...`);

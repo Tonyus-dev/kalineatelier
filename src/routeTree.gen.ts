@@ -20,7 +20,6 @@ import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as ApiGenerateInfograficoRouteImport } from './routes/api/generate-infografico'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
-import { Route as ApiCamaraTranscribeSegmentRouteImport } from './routes/api/camara-transcribe-segment'
 import { Route as AuthenticatedRevisaoRouteImport } from './routes/_authenticated/revisao'
 import { Route as AuthenticatedRegistroVivoRouteImport } from './routes/_authenticated/registro-vivo'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
@@ -93,12 +92,6 @@ const ApiChatRoute = ApiChatRouteImport.update({
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiCamaraTranscribeSegmentRoute =
-  ApiCamaraTranscribeSegmentRouteImport.update({
-    id: '/api/camara-transcribe-segment',
-    path: '/api/camara-transcribe-segment',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AuthenticatedRevisaoRoute = AuthenticatedRevisaoRouteImport.update({
   id: '/revisao',
   path: '/revisao',
@@ -206,7 +199,6 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/registro-vivo': typeof AuthenticatedRegistroVivoRoute
   '/revisao': typeof AuthenticatedRevisaoRoute
-  '/api/camara-transcribe-segment': typeof ApiCamaraTranscribeSegmentRoute
   '/api/chat': typeof ApiChatRoute
   '/api/generate-infografico': typeof ApiGenerateInfograficoRoute
   '/api/transcribe': typeof ApiTranscribeRoute
@@ -236,7 +228,6 @@ export interface FileRoutesByTo {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/registro-vivo': typeof AuthenticatedRegistroVivoRoute
   '/revisao': typeof AuthenticatedRevisaoRoute
-  '/api/camara-transcribe-segment': typeof ApiCamaraTranscribeSegmentRoute
   '/api/chat': typeof ApiChatRoute
   '/api/generate-infografico': typeof ApiGenerateInfograficoRoute
   '/api/transcribe': typeof ApiTranscribeRoute
@@ -268,7 +259,6 @@ export interface FileRoutesById {
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/registro-vivo': typeof AuthenticatedRegistroVivoRoute
   '/_authenticated/revisao': typeof AuthenticatedRevisaoRoute
-  '/api/camara-transcribe-segment': typeof ApiCamaraTranscribeSegmentRoute
   '/api/chat': typeof ApiChatRoute
   '/api/generate-infografico': typeof ApiGenerateInfograficoRoute
   '/api/transcribe': typeof ApiTranscribeRoute
@@ -300,7 +290,6 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/registro-vivo'
     | '/revisao'
-    | '/api/camara-transcribe-segment'
     | '/api/chat'
     | '/api/generate-infografico'
     | '/api/transcribe'
@@ -330,7 +319,6 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/registro-vivo'
     | '/revisao'
-    | '/api/camara-transcribe-segment'
     | '/api/chat'
     | '/api/generate-infografico'
     | '/api/transcribe'
@@ -361,7 +349,6 @@ export interface FileRouteTypes {
     | '/_authenticated/perfil'
     | '/_authenticated/registro-vivo'
     | '/_authenticated/revisao'
-    | '/api/camara-transcribe-segment'
     | '/api/chat'
     | '/api/generate-infografico'
     | '/api/transcribe'
@@ -382,7 +369,6 @@ export interface RootRouteChildren {
   FalarRoute: typeof FalarRoute
   JanelinhaRoute: typeof JanelinhaRoute
   ReuniaoRapidaRoute: typeof ReuniaoRapidaRoute
-  ApiCamaraTranscribeSegmentRoute: typeof ApiCamaraTranscribeSegmentRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiGenerateInfograficoRoute: typeof ApiGenerateInfograficoRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
@@ -469,13 +455,6 @@ declare module '@tanstack/react-router' {
       path: '/api/chat'
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/camara-transcribe-segment': {
-      id: '/api/camara-transcribe-segment'
-      path: '/api/camara-transcribe-segment'
-      fullPath: '/api/camara-transcribe-segment'
-      preLoaderRoute: typeof ApiCamaraTranscribeSegmentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/revisao': {
@@ -645,7 +624,6 @@ const rootRouteChildren: RootRouteChildren = {
   FalarRoute: FalarRoute,
   JanelinhaRoute: JanelinhaRoute,
   ReuniaoRapidaRoute: ReuniaoRapidaRoute,
-  ApiCamaraTranscribeSegmentRoute: ApiCamaraTranscribeSegmentRoute,
   ApiChatRoute: ApiChatRoute,
   ApiGenerateInfograficoRoute: ApiGenerateInfograficoRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
