@@ -6,6 +6,9 @@ import {
   listLocalMessages,
   sendLocalChatMessage,
 } from "@/lib/local/local-api-client";
+import { ATELIER_QUERY_KEYS } from "@/lib/local/query-keys";
+import { useAtelier } from "./AtelierContext";
+import { AtelierAsync } from "./atelier-feedback";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,19 +16,20 @@ import type { AtelierMessage, AtelierThread } from "./types";
 
 const FACET = "kaline" as const;
 
-export function AtelierChat({ disabled }: { disabled: boolean }) {
+export function AtelierChat() {
+  const { offline: disabled } = useAtelier();
   const queryClient = useQueryClient();
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
 
   const threadsQuery = useQuery({
-    queryKey: ["atelier", "threads"],
+    queryKey: ATELIER_QUERY_KEYS.threads,
     queryFn: async () => (await listLocalThreads()).threads as AtelierThread[],
     enabled: !disabled,
   });
 
   const messagesQuery = useQuery({
-    queryKey: ["atelier", "messages", activeThreadId],
+    queryKey: ATELIER_QUERY_KEYS.messages(activeThreadId ?? ""),
     queryFn: async () => (await listLocalMessages(activeThreadId!)).messages as AtelierMessage[],
     enabled: !disabled && !!activeThreadId,
   });
@@ -35,7 +39,7 @@ export function AtelierChat({ disabled }: { disabled: boolean }) {
     onSuccess: (res) => {
       const thread = res.thread as AtelierThread;
       setActiveThreadId(thread.id);
-      queryClient.invalidateQueries({ queryKey: ["atelier", "threads"] });
+      queryClient.invalidateQueries({ queryKey: ATELIER_QUERY_KEYS.threads });
     },
   });
 
@@ -46,8 +50,8 @@ export function AtelierChat({ disabled }: { disabled: boolean }) {
       const thread = res.thread as AtelierThread;
       setActiveThreadId(thread.id);
       setDraft("");
-      queryClient.invalidateQueries({ queryKey: ["atelier", "threads"] });
-      queryClient.invalidateQueries({ queryKey: ["atelier", "messages", thread.id] });
+      queryClient.invalidateQueries({ queryKey: ATELIER_QUERY_KEYS.threads });
+      queryClient.invalidateQueries({ queryKey: ATELIER_QUERY_KEYS.messages(thread.id) });
     },
   });
 
@@ -70,20 +74,22 @@ export function AtelierChat({ disabled }: { disabled: boolean }) {
             Nova thread
           </Button>
           <div className="space-y-1 max-h-72 overflow-auto">
-            {threads.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setActiveThreadId(t.id)}
-                className={`w-full text-left text-sm rounded px-2 py-1 hover:bg-muted ${
-                  activeThreadId === t.id ? "bg-muted" : ""
-                }`}
-              >
-                {t.title}
-              </button>
-            ))}
-            {threads.length === 0 && (
-              <p className="text-xs text-muted-foreground">Nenhuma thread ainda.</p>
-            )}
+            <AtelierAsync isLoading={threadsQuery.isLoading} error={threadsQuery.error} rows={4}>
+              {threads.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveThreadId(t.id)}
+                  className={`w-full text-left text-sm rounded px-2 py-1 hover:bg-muted ${
+                    activeThreadId === t.id ? "bg-muted" : ""
+                  }`}
+                >
+                  {t.title}
+                </button>
+              ))}
+              {threads.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhuma thread ainda.</p>
+              )}
+            </AtelierAsync>
           </div>
         </CardContent>
       </Card>
@@ -109,6 +115,11 @@ export function AtelierChat({ disabled }: { disabled: boolean }) {
             disabled={disabled}
             onChange={(e) => setDraft(e.target.value)}
           />
+          {sendMessage.error && (
+            <p className="text-xs text-destructive">
+              Não foi possível enviar: {(sendMessage.error as Error).message}
+            </p>
+          )}
           <Button
             disabled={disabled || !draft.trim() || sendMessage.isPending}
             onClick={() => sendMessage.mutate()}

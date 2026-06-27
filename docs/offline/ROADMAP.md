@@ -3,18 +3,22 @@
 A Kaline Offline nasce em três movimentos, um PR por vez. Cada PR deve ser pequeno o
 suficiente para revisar e completo o suficiente para compilar. Não antecipar fases.
 
-## Fases
+## Fases (histórico real)
 
 ```txt
-PR 1 — Fundação local                    ← este PR
-PR 2 — SQLite / API local / Memória
-PR 3 — Kaline Atelier UI
-PR 4 — modelos locais reais
-PR 5 — voz e transcrição (Whisper / Kokoro)
-PR 6 — ponte criptografada futura
+PR 1 — Fundação local                                   ← concluído
+PR 2 — SQLite / API local / Memória                     ← concluído
+PR 3 — Kaline Atelier UI                                 ← concluído
+PR 4 — Otimização estrutural (Offline enxuta)           ← concluído
+PR 5 — Release local + arquitetura tunnel-ready (mock)  ← concluído
+PR 6 — Motores locais reais: Ollama + Qwen + whisper.cpp ← concluído (v0.2)
 ```
 
-## PR 1 — Fundação local (atual)
+Observação: o plano inicial separava "modelos" e "voz" em PRs distintos, mas na prática o
+PR 6 entregou texto/visão (Ollama + Qwen) e transcrição (whisper.cpp) juntos. Este roadmap
+reflete a sequência que de fato aconteceu.
+
+## PR 1 — Fundação local (concluído)
 
 - Documentação em `docs/offline/`.
 - Runtime mode (`online` | `offline`), default `online`.
@@ -45,14 +49,13 @@ Kuan-Yin, chats paralelos (Kháris, Kuan-Yin), Treinos dedicado, Drive, Jurídic
 (Jurisprudência/Legislação) e Perfis & Convites. Nenhuma migração apagada. Detalhes e
 classificação de migrações em [`OFFLINE_SCOPE.md`](./OFFLINE_SCOPE.md).
 
-## Pós-PR 4
+## Próximos passos (pós-PR 6)
 
 ```txt
-PR 5 — modelos locais reais
-PR 6 — Whisper Small / Kokoro
-PR 7 — pipeline público criptografado
-PR 8 — ponte com Totalidade online
-PR 9 — empacotamento portátil
+TTS local (Kokoro / voz)
+pipeline público criptografado
+ponte com Totalidade online
+empacotamento portátil
 ```
 
 A ponte criptografada só nasce depois de existirem, estáveis: SQLite local, `inbox_events`,

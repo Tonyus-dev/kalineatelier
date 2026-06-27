@@ -1,4 +1,4 @@
-# Instalação — Kaline Offline v0.1
+# Instalação — Kaline Offline v0.2
 
 Guia para baixar e rodar a Kaline Offline localmente. Não precisa de servidor remoto,
 não precisa de conta paga e por padrão não consome créditos de IA (provider `mock`).

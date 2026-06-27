@@ -1,4 +1,4 @@
-# Solução de problemas — Kaline Offline v0.1
+# Solução de problemas — Kaline Offline v0.2
 
 ## Porta 64113 ocupada
 
