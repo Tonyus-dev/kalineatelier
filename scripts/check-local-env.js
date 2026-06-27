@@ -5,12 +5,25 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+function readEnvFile(envPath) {
+  if (!existsSync(envPath)) return {};
+  const vars = {};
+  for (const rawLine of readFileSync(envPath, "utf8").split("\n")) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq === -1) continue;
+    vars[line.slice(0, eq).trim()] = line.slice(eq + 1).trim();
+  }
+  return vars;
+}
 
 function checkCommand(cmd) {
   try {
@@ -81,6 +94,60 @@ async function main() {
         "local-server/data ainda não existe",
         "Será criado automaticamente na primeira execução do local-server.",
       );
+
+  // Checagem informativa de motores locais (Ollama/Whisper). Nunca falha o ambiente
+  // por padrão: só verifica binários/modelos quando local-server/.env existe e indica
+  // explicitamente o uso de ollama / whisper_cpp. Sem .env (ex.: CI), só informa.
+  const env = readEnvFile(path.join(ROOT, "local-server", ".env"));
+  const modelProvider = env.KALINE_MODEL_PROVIDER;
+  results.push({
+    label: `Provider de modelo configurado: ${modelProvider ?? "(sem .env, padrão mock)"}`,
+    ok: true,
+  });
+
+  if (modelProvider === "ollama") {
+    const ollamaVars = ["OLLAMA_BASE_URL", "OLLAMA_MODEL_GENERAL", "OLLAMA_MODEL_VISION"];
+    for (const key of ollamaVars) {
+      env[key]
+        ? ok(`${key} configurado (${env[key]})`)
+        : fail(`${key} não configurado`, "Defina em local-server/.env para usar o Ollama.");
+    }
+  }
+
+  const transcribeProvider = env.KALINE_TRANSCRIBE_PROVIDER;
+  results.push({
+    label: `Provider de transcrição configurado: ${transcribeProvider ?? "(sem .env, nenhum exigido)"}`,
+    ok: true,
+  });
+
+  if (transcribeProvider === "whisper_cpp") {
+    if (env.WHISPER_CPP_BIN) {
+      existsSync(env.WHISPER_CPP_BIN)
+        ? ok(`WHISPER_CPP_BIN encontrado (${env.WHISPER_CPP_BIN})`)
+        : fail(
+            "WHISPER_CPP_BIN configurado, mas o arquivo não existe",
+            "Confirme o caminho do whisper-cli.",
+          );
+    } else {
+      fail(
+        "WHISPER_CPP_BIN não configurado",
+        "Defina em local-server/.env para usar o Whisper local.",
+      );
+    }
+    if (env.WHISPER_CPP_MODEL) {
+      existsSync(env.WHISPER_CPP_MODEL)
+        ? ok(`WHISPER_CPP_MODEL encontrado (${env.WHISPER_CPP_MODEL})`)
+        : fail(
+            "WHISPER_CPP_MODEL configurado, mas o arquivo não existe",
+            "Confirme o caminho do ggml-small.bin.",
+          );
+    } else {
+      fail(
+        "WHISPER_CPP_MODEL não configurado",
+        "Defina em local-server/.env para usar o Whisper local.",
+      );
+    }
+  }
 
   console.log("\nChecagem do ambiente local da Kaline Offline\n");
   for (const r of results) {

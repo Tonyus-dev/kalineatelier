@@ -27,6 +27,7 @@ local-server/data/*.sqlite
 local-server/data/*.sqlite-shm
 local-server/data/*.sqlite-wal
 local-server/data/*.db
+local-server/data/tmp
 !local-server/data/.gitkeep
 
 # Editor directories and files

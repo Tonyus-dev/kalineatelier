@@ -1,6 +1,8 @@
 import type Database from "better-sqlite3";
 import { newId } from "../utils/ids.js";
 import { nowIso } from "../utils/dates.js";
+import { MODEL_CONFIG } from "../config.js";
+import { ollamaChat, OllamaError } from "./model-provider/ollama.js";
 
 export const FACETS = ["kaline", "kharis", "kuanyin", "coder"] as const;
 export type Facet = (typeof FACETS)[number];
@@ -74,14 +76,26 @@ export function listMessages(db: Database.Database, threadId: string): MessageRo
 
 function insertMessage(
   db: Database.Database,
-  input: { threadId: string; role: MessageRow["role"]; content: string },
+  input: {
+    threadId: string;
+    role: MessageRow["role"];
+    content: string;
+    metadata?: Record<string, unknown>;
+  },
 ): MessageRow {
   const id = newId();
   const now = nowIso();
   db.prepare(
     `INSERT INTO chat_messages (id, thread_id, role, content, created_at, metadata_json)
-     VALUES (@id, @thread_id, @role, @content, @now, NULL)`,
-  ).run({ id, thread_id: input.threadId, role: input.role, content: input.content, now });
+     VALUES (@id, @thread_id, @role, @content, @now, @metadata_json)`,
+  ).run({
+    id,
+    thread_id: input.threadId,
+    role: input.role,
+    content: input.content,
+    now,
+    metadata_json: input.metadata ? JSON.stringify(input.metadata) : null,
+  });
   db.prepare("UPDATE chat_threads SET updated_at = @now WHERE id = @id").run({
     id: input.threadId,
     now,
@@ -101,10 +115,63 @@ function mockGenerate(userMessage: string): string {
   );
 }
 
-export function runChat(
+export class ChatModelError extends Error {}
+
+async function generateAssistantReply(
+  userMessage: string,
+): Promise<{ content: string; metadata?: Record<string, unknown> }> {
+  if (MODEL_CONFIG.provider !== "ollama") {
+    return { content: mockGenerate(userMessage) };
+  }
+
+  const startedAt = Date.now();
+  try {
+    const result = await ollamaChat({
+      model: MODEL_CONFIG.ollama.models.general,
+      messages: [
+        { role: "system", content: "Você é Kaline Offline, assistente local e privada." },
+        { role: "user", content: userMessage },
+      ],
+    });
+    console.log(
+      JSON.stringify({
+        provider: "ollama",
+        model: MODEL_CONFIG.ollama.models.general,
+        durationMs: Date.now() - startedAt,
+        success: true,
+      }),
+    );
+    return { content: result.text, metadata: { provider: "ollama", fallback: false } };
+  } catch (err) {
+    console.error(
+      JSON.stringify({
+        provider: "ollama",
+        model: MODEL_CONFIG.ollama.models.general,
+        durationMs: Date.now() - startedAt,
+        success: false,
+      }),
+    );
+    const message = err instanceof OllamaError ? err.message : "Falha ao consultar o Ollama.";
+
+    if (!MODEL_CONFIG.fallbackToMock) {
+      throw new ChatModelError(message);
+    }
+
+    return {
+      content: mockGenerate(userMessage),
+      metadata: {
+        provider: "mock",
+        fallback: true,
+        warning: `Ollama indisponível; resposta gerada por mock. (${message})`,
+      },
+    };
+  }
+}
+
+export async function runChat(
   db: Database.Database,
   input: { threadId?: string; message: string; facet?: Facet },
-): { thread: ThreadRow; userMessage: MessageRow; assistantMessage: MessageRow } {
+): Promise<{ thread: ThreadRow; userMessage: MessageRow; assistantMessage: MessageRow }> {
   const thread = input.threadId
     ? (getThread(db, input.threadId) ?? createThread(db, { facet: input.facet ?? "kaline" }))
     : createThread(db, { facet: input.facet ?? "kaline" });
@@ -115,10 +182,13 @@ export function runChat(
     content: input.message,
   });
 
+  const reply = await generateAssistantReply(input.message);
+
   const assistantMessage = insertMessage(db, {
     threadId: thread.id,
     role: "assistant",
-    content: mockGenerate(input.message),
+    content: reply.content,
+    metadata: reply.metadata,
   });
 
   return { thread: getThread(db, thread.id) as ThreadRow, userMessage, assistantMessage };

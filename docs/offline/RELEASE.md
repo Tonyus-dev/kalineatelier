@@ -41,6 +41,10 @@ Checklist a ser percorrido antes de qualquer release/tag desta fase tunnel-ready
 - [ ] Provider mock funciona sem configuração extra
 - [ ] OpenRouter documentado (e não habilitado por padrão)
 - [ ] Ollama documentado (e não habilitado por padrão)
+- [ ] `GET /model/status` reporta status real do Ollama (sem mentir "ok" quando indisponível)
+- [ ] `GET /transcribe/status` reporta status real do whisper.cpp
+- [ ] `POST /model/vision` e `POST /transcribe/file` retornam erro claro quando o motor
+      correspondente não está disponível
 - [ ] Câmara do Eco documentada/preservada (ver `OFFLINE_SCOPE.md` e nav do app)
 
 ## Empacotamento
