@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Instalar/Atualizar Kaline (Linux Mint)
+Comment=Instala ou atualiza a Kaline Offline neste computador (Linux Mint Xfce)
+Exec=bash -lc 'cd "$(dirname "%k" | sed "s|^file://||")" && bash install-kaline-mint.sh; echo; read -p "Pressione Enter para fechar..."'
+Terminal=true
+Categories=Utility;

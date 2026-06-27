@@ -35,9 +35,9 @@ fn main() {
                     "janelinha",
                     WebviewUrl::External(url.parse().expect("KALINE_DESKTOP_APP_URL inválida")),
                 )
-                .title("Kaline")
-                .inner_size(320.0, 480.0)
-                .resizable(false)
+                .title("Kaline Janelinha")
+                .inner_size(420.0, 620.0)
+                .resizable(true)
                 .decorations(false)
                 .always_on_top(true)
                 .skip_taskbar(true)
