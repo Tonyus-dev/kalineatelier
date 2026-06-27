@@ -10,6 +10,37 @@ este prompt descreve exatamente o que portar.
 
 ## Prompt (copiar a partir daqui)
 
+### ⛔ IMPERATIVO — SIGA ESTE CONTRATO IPSIS LITTERIS
+
+Este prompt define um **contrato de interoperabilidade** com a Kaline Offline, que já
+está implementada e em produção do outro lado. Você **DEVE** segui-lo à letra. Você
+**NÃO TEM AUTORIDADE** para "melhorar", generalizar, renomear ou inventar variações.
+
+Regras absolutas (qualquer desvio QUEBRA a compatibilidade e é considerado erro):
+
+1. **Path exato**: o endpoint é `GET /api/bridge/olhar-de-kairos`. Não mude o caminho,
+   não pluralize, não versione na URL, não adicione query params.
+2. **Envelope exato**: a resposta é **exatamente** `{ "v": 1, "iv": <base64>, "data": <base64> }`.
+   Nada de campos extras, nada de outro formato, nada de wrapper.
+3. **Cripto exata**: AES-256-GCM, IV de 12 bytes, chave derivada por **SHA-256 do
+   `KALINE_BRIDGE_SHARED_KEY`**. Não troque o algoritmo, o tamanho do IV nem o método de
+   derivação. O lado offline decifra com exatamente isso; qualquer mudança torna o
+   conteúdo ilegível.
+4. **Somente leitura, um único GET**: sem fila, sem cursor, sem incremental, sem retry no
+   servidor, sem endpoint de escrita (`POST`) que aceite envelopes de volta. Sem push.
+5. **Sem funções não previstas**: NÃO crie rotas, tabelas, parâmetros, modos ou
+   "extensões" que não estejam descritos aqui. Se algo parecer faltar, **pare e pergunte
+   ao usuário** — não improvise. Uma função inventada que o lado offline não conhece é,
+   por definição, incompatível.
+6. **Sem efeitos colaterais**: o handler não escreve nada no banco, não dispara jobs, não
+   muda estado. Só lê, monta o snapshot, cifra e responde.
+
+Se você se pegar pensando "seria mais eficiente/elegante fazer diferente" — **não faça**.
+A eficiência aqui é secundária à compatibilidade exata com o contrato. Implemente o que
+está escrito, exatamente como está escrito.
+
+---
+
 Implemente o "Olhar de Kairós": um endpoint único, cifrado, de leitura, que a
 Kaline Offline (app local, repositório separado) vai puxar sob demanda para
 sincronizar um snapshot consolidado do usuário. **Não é um mecanismo de sync
@@ -128,17 +159,49 @@ explicitamente pelo usuário e deve ser respeitada à risca.
 
 ---
 
+### 5. (Opcional) Ação "Buscar do Offline" — sentido inverso
+
+Além do GET acima (online → offline), o app online pode oferecer uma ação **"Buscar do
+Offline"**, que puxa um snapshot LOCAL da Kaline Offline. Regras desta parte (também
+ipsis litteris):
+
+- A chamada é **client-side** (no navegador), nunca no Worker/servidor: o Worker da nuvem
+  **não** acessa o `127.0.0.1` da máquina do usuário.
+- Endpoint a consumir (já existe no local-server): `GET {VITE_KALINE_OFFLINE_LOCAL_URL}/bridge/olhar-de-kairos/local-snapshot`,
+  default `http://127.0.0.1:64113`. A resposta é o mesmo envelope `{ v, iv, data }`,
+  decifrável com a mesma `KALINE_BRIDGE_SHARED_KEY`.
+- O snapshot recebido entra como **pendente/revisável** no lado online — nunca aplicado
+  automaticamente.
+- Trate CORS/preflight/falha amigável: se a API local não responder ou o CORS bloquear,
+  mostre mensagem clara, não trave.
+- Adicione `VITE_KALINE_OFFLINE_LOCAL_URL` (default `http://127.0.0.1:64113`) ao
+  `.env.example` do app online.
+
+Componente de referência pronto: `docs/offline/examples/totalidade/buscar-do-offline.example.tsx`
+neste repo (kalineatelier). O snapshot local segue o schema versionado
+`olhar-de-kairos.snapshot.v1` (campos: `schema`, `origin`, `deviceId`, `createdAt`,
+`expiresAt`, `summary`, `identity`, `calendar`, `meetings`, `chat`, `memory`, `limits`,
+`integrity.hash`). Não invente campos novos; trate campos ausentes como vazios.
+
+### 6. CORS no local-server (já existe; só configurar)
+
+Para o "Buscar do Offline" funcionar, a origem do app online precisa estar em
+`KALINE_CORS_ALLOWED_ORIGINS` no `local-server/.env` da Kaline Offline (o `@fastify/cors`
+já responde o `OPTIONS`/preflight). Isso é configuração do lado offline — você não mexe
+nisso no repo online, apenas documente para o usuário.
+
 ## Fim do prompt
 
 Depois de implementar isso no repo online, o fluxo completo funciona assim:
 
 ```
-Kaline Offline (sua máquina)        App online (Totalidade, outro repo)
-POST /bridge/pull        ──────►    (não existe ainda; é o repo online quem
-  (já implementado em                serve o GET abaixo)
-  kalineatelier/local-server)
-                          ◄──────    GET /api/bridge/olhar-de-kairos
-                                       (a implementar, conforme prompt acima)
+Kaline Offline (sua máquina)              App online (Totalidade, outro repo)
+POST /bridge/olhar-de-kairos/pull-online  (é o repo online quem serve o GET abaixo)
+  (já implementado em kalineatelier  ──►  GET /api/bridge/olhar-de-kairos
+   /local-server)                           (a implementar, conforme prompt acima)
+
+GET /bridge/olhar-de-kairos/local-snapshot ◄── "Buscar do Offline" (client-side, opcional)
+  (já implementado no local-server)            no app online
 ```
 
 `KALINE_BRIDGE_SHARED_KEY` precisa ser **idêntica** nos dois lados (configurada

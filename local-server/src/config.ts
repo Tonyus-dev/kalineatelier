@@ -153,6 +153,8 @@ export const BRIDGE_CONFIG = {
 export const BRIDGE_STATE = {
   lastCloudCheckAt: null as string | null,
   lastError: null as string | null,
+  lastPullAt: null as string | null,
+  lastPullStatus: null as "ok" | "error" | null,
 };
 
 export const CORS_ALLOWED_ORIGINS = env(

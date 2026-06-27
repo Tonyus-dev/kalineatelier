@@ -46,12 +46,51 @@ async function main() {
   try {
     const bridge = await request("/bridge/status");
     record(
-      "GET /bridge/status",
-      bridge.status === 200 && bridge.body?.mode === "disabled",
+      "GET /bridge/status (bloco kairos)",
+      bridge.status === 200 &&
+        bridge.body?.mode === "disabled" &&
+        bridge.body?.kairos &&
+        bridge.body.kairos.enabled === false &&
+        "lastPullAt" in bridge.body.kairos &&
+        "lastPullStatus" in bridge.body.kairos,
       JSON.stringify(bridge.body),
     );
   } catch (err) {
-    record("GET /bridge/status", false, String(err));
+    record("GET /bridge/status (bloco kairos)", false, String(err));
+  }
+
+  try {
+    // Sem pull_only configurado, o pull online -> offline deve recusar honestamente.
+    const pull = await request("/bridge/olhar-de-kairos/pull-online", {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    record(
+      "POST /bridge/olhar-de-kairos/pull-online (recusa honesta)",
+      pull.status === 400 && pull.body?.ok === false && typeof pull.body?.error === "string",
+      JSON.stringify(pull.body),
+    );
+  } catch (err) {
+    record("POST /bridge/olhar-de-kairos/pull-online (recusa honesta)", false, String(err));
+  }
+
+  try {
+    // Sem KALINE_BRIDGE_SHARED_KEY, o snapshot local deve recusar (não vaza nada).
+    const snap = await request("/bridge/olhar-de-kairos/local-snapshot");
+    const okEnvelope =
+      snap.status === 200 && snap.body?.v === 1 && typeof snap.body?.data === "string";
+    const okRefused = snap.status === 503 && snap.body?.ok === false;
+    record(
+      "GET /bridge/olhar-de-kairos/local-snapshot (cifrado ou recusa honesta)",
+      okEnvelope || okRefused,
+      JSON.stringify(snap.body),
+    );
+  } catch (err) {
+    record(
+      "GET /bridge/olhar-de-kairos/local-snapshot (cifrado ou recusa honesta)",
+      false,
+      String(err),
+    );
   }
 
   try {
@@ -90,6 +129,47 @@ async function main() {
     );
   } catch (err) {
     record("POST /chat (mock)", false, String(err));
+  }
+
+  try {
+    // Reunião: deve entrar como untrusted/pending e nunca como verdade local.
+    const created = await request("/meetings", {
+      method: "POST",
+      body: JSON.stringify({ transcript: "smoke test de reunião", durationMs: 1000 }),
+    });
+    const ev = created.body?.event;
+    const okCreate =
+      created.status === 200 &&
+      ev?.type === "meeting_transcript" &&
+      ev?.trust_level === "untrusted" &&
+      ev?.status === "pending";
+    record("POST /meetings (untrusted/pending)", okCreate, JSON.stringify(ev ?? created.body));
+
+    const list = await request("/meetings");
+    record(
+      "GET /meetings",
+      list.status === 200 && Array.isArray(list.body?.meetings),
+      JSON.stringify({ count: list.body?.meetings?.length }),
+    );
+  } catch (err) {
+    record("POST /meetings (untrusted/pending)", false, String(err));
+  }
+
+  try {
+    // Sem modelo Kokoro presente, /tts/speak deve falhar honestamente (sem fingir voz).
+    const speak = await request("/tts/speak", {
+      method: "POST",
+      body: JSON.stringify({ text: "olá" }),
+    });
+    const okAudio = speak.status === 200; // áudio real (quando o modelo existe)
+    const okRefused = speak.status === 503 && speak.body?.ok === false;
+    record(
+      "POST /tts/speak (áudio real ou recusa honesta)",
+      okAudio || okRefused,
+      JSON.stringify(speak.body ?? { status: speak.status }),
+    );
+  } catch (err) {
+    record("POST /tts/speak (áudio real ou recusa honesta)", false, String(err));
   }
 
   console.log(`\nSmoke test do local-server (${BASE_URL})\n`);

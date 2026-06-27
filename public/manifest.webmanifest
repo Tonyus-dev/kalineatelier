@@ -22,5 +22,21 @@
       "type": "image/png",
       "purpose": "any"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Falar com Kaline",
+      "short_name": "Falar",
+      "description": "Fala e ouve a resposta da Kaline (voz Dora).",
+      "url": "/falar",
+      "icons": [{ "src": "/ka-apple.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Gravar reunião",
+      "short_name": "Reunião",
+      "description": "Grava o microfone, transcreve e envia para revisão.",
+      "url": "/reuniao-rapida",
+      "icons": [{ "src": "/ka-apple.png", "sizes": "192x192", "type": "image/png" }]
+    }
   ]
 }

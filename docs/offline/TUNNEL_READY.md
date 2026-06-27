@@ -73,9 +73,39 @@ KALINE_BRIDGE_USER_TOKEN=            # token de sessão (bearer) da sua conta na
 Modos de `KALINE_TUNNEL_MODE`:
 
 - `disabled` — padrão. Nenhuma comunicação com a nuvem.
-- `pull_only` — **implementado**. `POST /bridge/pull` puxa o Olhar de Kairós sob demanda.
+- `pull_only` — **implementado**. `POST /bridge/olhar-de-kairos/pull-online` puxa o Olhar de
+  Kairós da nuvem sob demanda (alias deprecado: `POST /bridge/pull`).
 - `manual_import` — (futuro) importação manual de arquivo/envelope exportado da
   Totalidade, sem qualquer conexão de rede.
+
+## Sentido inverso — snapshot local cifrado (offline → online)
+
+`GET /bridge/olhar-de-kairos/local-snapshot` serve um retrato LOCAL cifrado (AES-256-GCM,
+mesmo envelope `{ v, iv, data }`) para o app online puxar **client-side** — o Worker da
+nuvem não acessa o `127.0.0.1` do usuário. Exige `KALINE_BRIDGE_SHARED_KEY` e a origem
+online em `KALINE_CORS_ALLOWED_ORIGINS`. O snapshot segue o schema versionado
+`olhar-de-kairos.snapshot.v1` (`local-server/src/services/kairos-snapshot.ts`): identidade,
+últimas 25 mensagens, reuniões transcritas, registro vivo, sedimentos, decisões, com
+`limits`, `createdAt/expiresAt`, `deviceId` e `integrity.hash` (sha256). Nunca inclui
+segredos, tokens nem áudio cru. No lado online ele entra como **pendente/revisável**.
+
+Exemplo de consumo para o repo online:
+`docs/offline/examples/totalidade/buscar-do-offline.example.tsx`.
+
+## Ações rápidas no PWA (Falar / Reunião)
+
+O PWA expõe duas ações rápidas (rotas `/falar` e `/reuniao-rapida`, mais a `/janelinha`
+que o companion nativo do PR 2 vai embrulhar):
+
+- **Falar com Kaline**: liga o microfone sob demanda, transcreve (Whisper), manda pro chat
+  local e fala a resposta com a voz **Dora** (Kokoro, `pf_dora`) via `POST /tts/speak`;
+  se o Kokoro estiver indisponível, cai para a voz do navegador (`speechSynthesis`).
+- **Gravar reunião**: grava **só microfone** (áudio interno do sistema fica para o
+  companion nativo do PR 2), transcreve e grava em `inbox_events` como `meeting_transcript`
+  (`trust_level='untrusted'`, `status='pending'`) — revisável, nunca aplicado sozinho.
+
+`GET /bridge/status` agora inclui um bloco `kairos` com `lastPullAt`/`lastPullStatus` além
+de `lastCloudCheckAt`/`lastError`.
 
 ## `GET /bridge/status`
 

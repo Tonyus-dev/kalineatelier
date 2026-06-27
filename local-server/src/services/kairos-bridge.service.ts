@@ -15,7 +15,9 @@ import { createInboxEvent } from "./inbox.service.js";
 import { decryptKairosSnapshot, type KairosEnvelope } from "./kairos-crypto.js";
 import { nowIso } from "../utils/dates.js";
 
-type KairosPullResult = { ok: true; eventsCreated: number } | { ok: false; error: string };
+type KairosPullResult =
+  | { ok: true; eventsCreated: number; eventId: string | null }
+  | { ok: false; error: string };
 
 export async function pullOlharDeKairos(db: Database.Database): Promise<KairosPullResult> {
   if (BRIDGE_CONFIG.tunnelMode !== "pull_only") {
@@ -78,25 +80,33 @@ export async function pullOlharDeKairos(db: Database.Database): Promise<KairosPu
     ];
 
     let eventsCreated = 0;
+    let lastEventId: string | null = null;
     for (const section of sections) {
       if (section.payload == null) continue;
-      createInboxEvent(db, {
+      const event = createInboxEvent(db, {
         source: "olhar_de_kairos",
         type: section.type,
         title: section.title,
         payload: section.payload,
         trustLevel: "untrusted",
       });
+      lastEventId = event.id;
       eventsCreated += 1;
     }
 
-    BRIDGE_STATE.lastCloudCheckAt = nowIso();
+    const at = nowIso();
+    BRIDGE_STATE.lastCloudCheckAt = at;
     BRIDGE_STATE.lastError = null;
-    return { ok: true, eventsCreated };
+    BRIDGE_STATE.lastPullAt = at;
+    BRIDGE_STATE.lastPullStatus = "ok";
+    return { ok: true, eventsCreated, eventId: lastEventId };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
-    BRIDGE_STATE.lastCloudCheckAt = nowIso();
+    const at = nowIso();
+    BRIDGE_STATE.lastCloudCheckAt = at;
     BRIDGE_STATE.lastError = error;
+    BRIDGE_STATE.lastPullAt = at;
+    BRIDGE_STATE.lastPullStatus = "error";
     return { ok: false, error };
   }
 }

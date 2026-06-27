@@ -9,6 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ReuniaoRapidaRouteImport } from './routes/reuniao-rapida'
+import { Route as JanelinhaRouteImport } from './routes/janelinha'
+import { Route as FalarRouteImport } from './routes/falar'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AtelierRouteImport } from './routes/atelier'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -36,6 +39,21 @@ import { Route as ApiBridgeOlharDeKairosRouteImport } from './routes/api/bridge/
 import { Route as AuthenticatedTrilhaThreadIdRouteImport } from './routes/_authenticated/trilha.$threadId'
 import { Route as AuthenticatedChatThreadIdRouteImport } from './routes/_authenticated/chat.$threadId'
 
+const ReuniaoRapidaRoute = ReuniaoRapidaRouteImport.update({
+  id: '/reuniao-rapida',
+  path: '/reuniao-rapida',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JanelinhaRoute = JanelinhaRouteImport.update({
+  id: '/janelinha',
+  path: '/janelinha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FalarRoute = FalarRouteImport.update({
+  id: '/falar',
+  path: '/falar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -174,6 +192,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/atelier': typeof AtelierRoute
   '/auth': typeof AuthRoute
+  '/falar': typeof FalarRoute
+  '/janelinha': typeof JanelinhaRoute
+  '/reuniao-rapida': typeof ReuniaoRapidaRoute
   '/agenda': typeof AuthenticatedAgendaRoute
   '/camara': typeof AuthenticatedCamaraRoute
   '/facetas': typeof AuthenticatedFacetasRoute
@@ -201,6 +222,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/atelier': typeof AtelierRoute
   '/auth': typeof AuthRoute
+  '/falar': typeof FalarRoute
+  '/janelinha': typeof JanelinhaRoute
+  '/reuniao-rapida': typeof ReuniaoRapidaRoute
   '/agenda': typeof AuthenticatedAgendaRoute
   '/camara': typeof AuthenticatedCamaraRoute
   '/facetas': typeof AuthenticatedFacetasRoute
@@ -230,6 +254,9 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/atelier': typeof AtelierRoute
   '/auth': typeof AuthRoute
+  '/falar': typeof FalarRoute
+  '/janelinha': typeof JanelinhaRoute
+  '/reuniao-rapida': typeof ReuniaoRapidaRoute
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/camara': typeof AuthenticatedCamaraRoute
   '/_authenticated/facetas': typeof AuthenticatedFacetasRoute
@@ -259,6 +286,9 @@ export interface FileRouteTypes {
     | '/'
     | '/atelier'
     | '/auth'
+    | '/falar'
+    | '/janelinha'
+    | '/reuniao-rapida'
     | '/agenda'
     | '/camara'
     | '/facetas'
@@ -286,6 +316,9 @@ export interface FileRouteTypes {
     | '/'
     | '/atelier'
     | '/auth'
+    | '/falar'
+    | '/janelinha'
+    | '/reuniao-rapida'
     | '/agenda'
     | '/camara'
     | '/facetas'
@@ -314,6 +347,9 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/atelier'
     | '/auth'
+    | '/falar'
+    | '/janelinha'
+    | '/reuniao-rapida'
     | '/_authenticated/agenda'
     | '/_authenticated/camara'
     | '/_authenticated/facetas'
@@ -343,6 +379,9 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AtelierRoute: typeof AtelierRoute
   AuthRoute: typeof AuthRoute
+  FalarRoute: typeof FalarRoute
+  JanelinhaRoute: typeof JanelinhaRoute
+  ReuniaoRapidaRoute: typeof ReuniaoRapidaRoute
   ApiCamaraTranscribeSegmentRoute: typeof ApiCamaraTranscribeSegmentRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiGenerateInfograficoRoute: typeof ApiGenerateInfograficoRoute
@@ -355,6 +394,27 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reuniao-rapida': {
+      id: '/reuniao-rapida'
+      path: '/reuniao-rapida'
+      fullPath: '/reuniao-rapida'
+      preLoaderRoute: typeof ReuniaoRapidaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/janelinha': {
+      id: '/janelinha'
+      path: '/janelinha'
+      fullPath: '/janelinha'
+      preLoaderRoute: typeof JanelinhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/falar': {
+      id: '/falar'
+      path: '/falar'
+      fullPath: '/falar'
+      preLoaderRoute: typeof FalarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -582,6 +642,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AtelierRoute: AtelierRoute,
   AuthRoute: AuthRoute,
+  FalarRoute: FalarRoute,
+  JanelinhaRoute: JanelinhaRoute,
+  ReuniaoRapidaRoute: ReuniaoRapidaRoute,
   ApiCamaraTranscribeSegmentRoute: ApiCamaraTranscribeSegmentRoute,
   ApiChatRoute: ApiChatRoute,
   ApiGenerateInfograficoRoute: ApiGenerateInfograficoRoute,

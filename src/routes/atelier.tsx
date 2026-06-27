@@ -8,6 +8,7 @@ import { AtelierChat } from "@/components/atelier/AtelierChat";
 import { AtelierRegistro } from "@/components/atelier/AtelierRegistro";
 import { AtelierJardim } from "@/components/atelier/AtelierJardim";
 import { AtelierRevisao } from "@/components/atelier/AtelierRevisao";
+import { AtelierInbox } from "@/components/atelier/AtelierInbox";
 import { AtelierRelatorios } from "@/components/atelier/AtelierRelatorios";
 import { AtelierConfiguracoes } from "@/components/atelier/AtelierConfiguracoes";
 import { AtelierPinGate } from "@/components/atelier/AtelierPinGate";
@@ -71,6 +72,7 @@ function AtelierPage() {
             <TabsTrigger value="registro">Registro Vivo</TabsTrigger>
             <TabsTrigger value="jardim">Jardim</TabsTrigger>
             <TabsTrigger value="revisao">Revisão</TabsTrigger>
+            <TabsTrigger value="inbox">Inbox</TabsTrigger>
             <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
             <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
           </TabsList>
@@ -85,6 +87,9 @@ function AtelierPage() {
           </TabsContent>
           <TabsContent value="revisao">
             <AtelierRevisao disabled={offline} />
+          </TabsContent>
+          <TabsContent value="inbox">
+            <AtelierInbox disabled={offline} />
           </TabsContent>
           <TabsContent value="relatorios">
             <AtelierRelatorios disabled={offline} />
