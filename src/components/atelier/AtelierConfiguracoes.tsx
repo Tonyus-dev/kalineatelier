@@ -7,6 +7,7 @@ import {
   checkLocalHealth,
   getLocalModelStatus,
   getLocalBridgeStatus,
+  pullLocalBridge,
   getLocalTranscribeStatus,
   testLocalModel,
   testLocalVision,
@@ -14,6 +15,7 @@ import {
   type LocalTestResult,
   type LocalVisionResult,
   type LocalTranscribeResult,
+  type LocalBridgePullResult,
 } from "@/lib/local/local-api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,6 +109,15 @@ export function AtelierConfiguracoes({ disabled }: { disabled: boolean }) {
     onSuccess: (result) => setTranscribeResult(result),
   });
 
+  const [bridgePullResult, setBridgePullResult] = useState<LocalBridgePullResult | null>(null);
+  const bridgePull = useMutation({
+    mutationFn: () => pullLocalBridge(),
+    onSuccess: (result) => {
+      setBridgePullResult(result);
+      queryClient.invalidateQueries({ queryKey: ["atelier", "bridge-status"] });
+    },
+  });
+
   const settings = settingsQuery.data ?? [];
   const transcribeStatus = transcribeStatusQuery.data;
 
@@ -141,12 +152,47 @@ export function AtelierConfiguracoes({ disabled }: { disabled: boolean }) {
             <span className="text-muted-foreground">Ponte com a nuvem</span>
             <span>{bridge ? (bridge.mode === "disabled" ? "desativada" : bridge.mode) : "—"}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Túnel</span>
-            <span>não implementado</span>
-          </div>
           {model?.message && <p className="text-xs text-muted-foreground pt-1">{model.message}</p>}
           {bridge?.message && <p className="text-xs text-muted-foreground">{bridge.message}</p>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Olhar de Kairós</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Modo do túnel</span>
+            <span>{bridge?.mode ?? "—"}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Última tentativa</span>
+            <span className="font-mono text-xs">{bridge?.lastCloudCheckAt ?? "nunca"}</span>
+          </div>
+          {bridge?.lastError && (
+            <p className="text-xs text-destructive">Erro: {bridge.lastError}</p>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={disabled || bridge?.mode !== "pull_only" || bridgePull.isPending}
+            onClick={() => bridgePull.mutate()}
+          >
+            {bridgePull.isPending ? "Puxando…" : "Puxar Olhar de Kairós"}
+          </Button>
+          {bridge && bridge.mode !== "pull_only" && (
+            <p className="text-xs text-muted-foreground">
+              Configure KALINE_TUNNEL_MODE=pull_only no .env do local-server para habilitar o pull.
+            </p>
+          )}
+          {bridgePullResult && (
+            <p className="text-xs text-muted-foreground pt-1">
+              {bridgePullResult.ok
+                ? `${bridgePullResult.eventsCreated} evento(s) criado(s) na inbox para revisão.`
+                : `Erro: ${bridgePullResult.error}`}
+            </p>
+          )}
         </CardContent>
       </Card>
 
