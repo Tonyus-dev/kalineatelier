@@ -51,28 +51,46 @@ function modelMatches(installed: string[], wanted: string): boolean {
 
 export async function getOllamaStatus(): Promise<OllamaStatus> {
   const baseUrl = MODEL_CONFIG.ollama.baseUrl;
+
+  if (!MODEL_CONFIG.ollama.enabled) {
+    return {
+      provider: "ollama",
+      status: "disabled",
+      available: false,
+      baseUrl,
+      message: "Ollama desabilitado (OLLAMA_ENABLED=false).",
+    };
+  }
+
   const installed = await listInstalledModels();
 
   if (installed === null) {
     return {
       provider: "ollama",
+      status: "unreachable",
       available: false,
       baseUrl,
       message: `Ollama não respondeu em ${baseUrl}.`,
     };
   }
 
-  const { general, summary, vision, coder } = MODEL_CONFIG.ollama.models;
+  const { general, router, summary, reasoning, textFallback, vision, visionFallback, coder } =
+    MODEL_CONFIG.ollama.models;
   const models = {
     general: { name: general, available: modelMatches(installed, general) },
+    router: { name: router, available: modelMatches(installed, router) },
     summary: { name: summary, available: modelMatches(installed, summary) },
+    reasoning: { name: reasoning, available: modelMatches(installed, reasoning) },
+    textFallback: { name: textFallback, available: modelMatches(installed, textFallback) },
     vision: { name: vision, available: modelMatches(installed, vision) },
+    visionFallback: { name: visionFallback, available: modelMatches(installed, visionFallback) },
     coder: { name: coder, available: modelMatches(installed, coder) },
   };
 
   if (!models.general.available) {
     return {
       provider: "ollama",
+      status: "missing_model",
       available: false,
       baseUrl,
       message: `Ollama ativo, mas o modelo ${general} não foi encontrado. Rode: ollama pull ${general}`,
@@ -81,6 +99,7 @@ export async function getOllamaStatus(): Promise<OllamaStatus> {
 
   return {
     provider: "ollama",
+    status: "available",
     available: true,
     baseUrl,
     models,

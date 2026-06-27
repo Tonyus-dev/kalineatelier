@@ -62,20 +62,27 @@ Instale Node.js 20+ em [nodejs.org](https://nodejs.org) ou via [nvm](https://git
 ```
 
 O Ollama não está rodando, ou `OLLAMA_BASE_URL` em `local-server/.env` está errado. Rode
-`ollama serve` ou abra o app do Ollama, confirme a URL e tente `GET /model/status` de novo.
-Com `KALINE_MODEL_FALLBACK_TO_MOCK=false` (padrão), o Chat Kaline retorna erro claro em vez
-de fingir sucesso; com `=true`, ele cai para o mock mas marca a resposta com
-`"fallback": true` e um aviso.
+`ollama serve` ou abra o app do Ollama, confirme a URL e tente `GET /model/status` de novo
+(`"status": "unreachable"`). Com `KALINE_MODEL_FALLBACK_TO_MOCK=false` (padrão), o Chat
+Kaline retorna erro claro em vez de fingir sucesso; com `=true`, ele cai para o mock mas
+marca a resposta com `"fallback": true` e um aviso.
+
+Se `OLLAMA_ENABLED=false`, `GET /model/status` reporta `"status": "disabled"` —
+ative a variável para usar o Ollama.
 
 ## Ollama ativo, mas modelo não encontrado
 
 ```txt
-"message": "Ollama ativo, mas o modelo qwen3.5:0.8b não foi encontrado. Rode: ollama pull qwen3.5:0.8b"
+"message": "Ollama ativo, mas o modelo llama3.2:1b não foi encontrado. Rode: ollama pull llama3.2:1b"
 ```
 
-Baixe o modelo indicado (a mensagem aponta exatamente qual falta):
+`GET /model/status` reporta `"status": "missing_model"`. Baixe o modelo indicado (a
+mensagem aponta exatamente qual falta):
 
 ```bash
+ollama pull llama3.2:1b
+ollama pull qwen2.5:1.5b
+ollama pull qwen3.5:2b
 ollama pull qwen3.5:0.8b
 ```
 
@@ -88,14 +95,27 @@ ollama pull qwen3.5:0.8b
 ou
 
 ```txt
-"message": "WHISPER_CPP_MODEL não encontrado."
+"message": "WHISPER_MODEL_PATH não encontrado."
 ```
 
-Verifique `WHISPER_CPP_BIN` e `WHISPER_CPP_MODEL` no `.env` do `local-server` — ambos
-precisam apontar para caminhos absolutos que existem no seu sistema. Veja
-[`MODELS_LOCAL.md`](./MODELS_LOCAL.md) para o passo a passo de instalação do whisper.cpp e
-download do `ggml-small.bin`. `node scripts/check-local-env.js` reporta isso também, quando
-essas variáveis estão configuradas no `.env`.
+`GET /transcribe/status` reporta `"status": "misconfigured"` nesses casos (ou
+`"disabled"` se `WHISPER_ENABLED=false`). Verifique `WHISPER_CPP_BIN` e
+`WHISPER_MODEL_PATH` no `.env` do `local-server` — ambos precisam apontar para caminhos
+absolutos que existem no seu sistema. Veja [`MODELS_LOCAL.md`](./MODELS_LOCAL.md) para o
+passo a passo de instalação do whisper.cpp e download do `ggml-small.bin`.
+`node scripts/check-local-env.js` reporta isso também, quando essas variáveis estão
+configuradas no `.env`.
+
+## Kokoro (TTS) `misconfigured`
+
+```txt
+"message": "KOKORO_MODEL_PATH ou KOKORO_VOICES_PATH não encontrados."
+```
+
+`GET /tts/status` reporta `"status": "misconfigured"` quando `KOKORO_ENABLED=true` mas
+`KOKORO_MODEL_PATH` e/ou `KOKORO_VOICES_PATH` não apontam para arquivos existentes. Se
+`KOKORO_ENABLED=false`, o status é `"disabled"`. A síntese de voz em si ainda não é
+exposta por nenhuma rota nesta fase — esta verificação é apenas de configuração.
 
 ## `POST /transcribe/file` falhou
 

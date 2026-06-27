@@ -185,7 +185,7 @@ export function AtelierConfiguracoes({ disabled }: { disabled: boolean }) {
           </div>
           {!model?.available && model?.provider === "ollama" && (
             <p className="text-xs text-muted-foreground pt-1">
-              Abra o Ollama e rode: ollama pull {String(model?.models?.general ?? "qwen3.5:0.8b")}
+              Abra o Ollama e rode: ollama pull {String(model?.models?.general ?? "llama3.2:1b")}
             </p>
           )}
 
@@ -257,7 +257,7 @@ export function AtelierConfiguracoes({ disabled }: { disabled: boolean }) {
           </div>
           {!transcribeStatus?.available && (
             <p className="text-xs text-muted-foreground pt-1">
-              Verifique WHISPER_CPP_BIN e WHISPER_CPP_MODEL no .env do local-server.
+              Verifique WHISPER_CPP_BIN e WHISPER_MODEL_PATH no .env do local-server.
             </p>
           )}
 
