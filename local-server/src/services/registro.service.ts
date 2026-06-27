@@ -21,6 +21,9 @@ export type RegistroRow = {
   title: string;
   content: string;
   source: string | null;
+  mood: number | null;
+  tags_json: string;
+  occurred_at: string | null;
   created_at: string;
   updated_at: string;
   archived_at: string | null;
@@ -28,19 +31,30 @@ export type RegistroRow = {
 
 export function createRegistro(
   db: Database.Database,
-  input: { kind: RegistroKind; title: string; content: string; source?: string | null },
+  input: {
+    kind: RegistroKind;
+    title: string;
+    content: string;
+    source?: string | null;
+    mood?: number | null;
+    tags?: string[];
+    occurred_at?: string | null;
+  },
 ): RegistroRow {
   const id = newId();
   const now = nowIso();
   db.prepare(
-    `INSERT INTO registro_vivo (id, kind, title, content, source, created_at, updated_at, archived_at)
-     VALUES (@id, @kind, @title, @content, @source, @created_at, @updated_at, NULL)`,
+    `INSERT INTO registro_vivo (id, kind, title, content, source, mood, tags_json, occurred_at, created_at, updated_at, archived_at)
+     VALUES (@id, @kind, @title, @content, @source, @mood, @tags_json, @occurred_at, @created_at, @updated_at, NULL)`,
   ).run({
     id,
     kind: input.kind,
     title: input.title,
     content: input.content,
     source: input.source ?? null,
+    mood: input.mood ?? null,
+    tags_json: JSON.stringify(input.tags ?? []),
+    occurred_at: input.occurred_at ?? now,
     created_at: now,
     updated_at: now,
   });
@@ -49,7 +63,12 @@ export function createRegistro(
 
 export function listRegistros(
   db: Database.Database,
-  opts: { kind?: RegistroKind; includeArchived?: boolean; limit?: number } = {},
+  opts: {
+    kind?: RegistroKind;
+    includeArchived?: boolean;
+    limit?: number;
+    since?: string;
+  } = {},
 ): RegistroRow[] {
   const limit = opts.limit ?? 100;
   const clauses: string[] = [];
@@ -60,10 +79,14 @@ export function listRegistros(
     clauses.push("kind = @kind");
     params.kind = opts.kind;
   }
+  if (opts.since) {
+    clauses.push("occurred_at >= @since");
+    params.since = opts.since;
+  }
 
   const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
   return db
-    .prepare(`SELECT * FROM registro_vivo ${where} ORDER BY created_at DESC LIMIT @limit`)
+    .prepare(`SELECT * FROM registro_vivo ${where} ORDER BY occurred_at DESC LIMIT @limit`)
     .all(params) as RegistroRow[];
 }
 

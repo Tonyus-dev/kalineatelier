@@ -4,6 +4,7 @@ import { getDb } from "../db/connection.js";
 import {
   createMemoria,
   listMemorias,
+  dueMemorias,
   reviewMemoria,
   archiveMemoria,
   normalizeQuality,
@@ -13,6 +14,11 @@ const createSchema = z.object({
   title: z.string().min(1),
   content: z.string().min(1),
   tags: z.array(z.string()).optional(),
+  source: z.string().optional(),
+  sourceRef: z.string().optional(),
+  sourceSedimentoId: z.string().optional(),
+  category: z.string().optional(),
+  importance: z.number().int().optional(),
 });
 const reviewSchema = z.object({ quality: z.string() });
 
@@ -22,6 +28,15 @@ export async function registerMemoriesRoutes(app: FastifyInstance): Promise<void
     return {
       memories: listMemorias(getDb(), {
         includeArchived: query.includeArchived === "true",
+        limit: query.limit ? Number(query.limit) : undefined,
+      }),
+    };
+  });
+
+  app.get("/memories/due", async (req) => {
+    const query = req.query as { limit?: string };
+    return {
+      memories: dueMemorias(getDb(), {
         limit: query.limit ? Number(query.limit) : undefined,
       }),
     };

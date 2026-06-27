@@ -1,9 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
-import { authedFetch } from "@/lib/authed-fetch";
 import { putBlob, getBlob, deleteBlob } from "@/lib/camara-blob-store";
+import {
+  listLocalCamaraSessoes,
+  createLocalCamaraSessao,
+  getLocalCamaraSessao,
+  deleteLocalCamaraSessao,
+  createLocalCamaraSegmento,
+  transcreverLocalCamaraSegmento,
+} from "@/lib/local/local-api-client";
 import {
   analisarCamara,
   semearHipoteseCamara,
@@ -54,10 +60,9 @@ const SEGMENT_SECONDS = 180; // 3 minutos por bloco
 type Sessao = {
   id: string;
   titulo: string;
-  modo: "audio" | "texto";
-  status: "gravando" | "finalizado";
-  texto_rapido: string | null;
-  analise: CamaraAnalise | null;
+  origem: "audio" | "texto";
+  texto: string | null;
+  analise_json: string | null;
   analise_at: string | null;
   created_at: string;
 };
@@ -66,13 +71,14 @@ type Segmento = {
   id: string;
   sessao_id: string;
   ordem: number;
-  inicio_seg: number;
-  fim_seg: number;
-  audio_path: string | null;
+  status: "pending" | "processing" | "transcribed" | "failed";
   transcricao: string | null;
-  status: "queued" | "processing" | "transcribed" | "failed";
   erro: string | null;
 };
+
+function analiseDe(s: Sessao): CamaraAnalise | null {
+  return s.analise_json ? (JSON.parse(s.analise_json) as CamaraAnalise) : null;
+}
 
 function fmt(seg: number) {
   const m = Math.floor(seg / 60)
@@ -93,11 +99,8 @@ function CamaraPage() {
   const [busy, setBusy] = useState(false);
 
   async function load() {
-    const { data } = await supabase
-      .from("camara_sessoes")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setSessoes((data ?? []) as Sessao[]);
+    const { sessoes: rows } = await listLocalCamaraSessoes();
+    setSessoes(rows as Sessao[]);
   }
   useEffect(() => {
     void load();
@@ -110,15 +113,8 @@ function CamaraPage() {
     }
     setBusy(true);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) throw new Error("não logado");
-      const { data, error } = await supabase
-        .from("camara_sessoes")
-        .insert({ user_id: u.user.id, titulo: titulo.trim(), modo: "audio" })
-        .select()
-        .single();
-      if (error) throw error;
-      setAberta(data as Sessao);
+      const { sessao } = await createLocalCamaraSessao({ titulo: titulo.trim(), origem: "audio" });
+      setAberta(sessao as Sessao);
       setTitulo("");
       setNovoMode(null);
       await load();
@@ -140,16 +136,11 @@ function CamaraPage() {
     }
     setBusy(true);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) throw new Error("não logado");
-      const { error } = await supabase.from("camara_sessoes").insert({
-        user_id: u.user.id,
+      await createLocalCamaraSessao({
         titulo: titulo.trim(),
-        modo: "texto",
-        status: "finalizado",
-        texto_rapido: textoRapido.trim(),
+        origem: "texto",
+        texto: textoRapido.trim(),
       });
-      if (error) throw error;
       setTitulo("");
       setTextoRapido("");
       setNovoMode(null);
@@ -163,15 +154,8 @@ function CamaraPage() {
   }
 
   async function remover(s: Sessao) {
-    if (!confirm(`Remover "${s.titulo}"? Áudios e transcrições serão apagados.`)) return;
-    // best-effort: lista os audio_paths dos segmentos e remove
-    const { data: segs } = await supabase
-      .from("camara_segmentos")
-      .select("audio_path")
-      .eq("sessao_id", s.id);
-    const paths = (segs ?? []).map((x) => x.audio_path).filter((x): x is string => !!x);
-    if (paths.length) await supabase.storage.from("camara-audio").remove(paths);
-    await supabase.from("camara_sessoes").delete().eq("id", s.id);
+    if (!confirm(`Remover "${s.titulo}"? Transcrições serão apagadas.`)) return;
+    await deleteLocalCamaraSessao(s.id);
     await load();
   }
 
@@ -206,7 +190,7 @@ function CamaraPage() {
             <FileAudio className="w-6 h-6 text-[color:var(--gold)] mb-2" />
             <div className="serif text-lg text-[color:var(--ivory)]">Gravar reunião</div>
             <div className="text-xs text-[color:var(--ivory-dim)] mt-1">
-              Captura em blocos de 3 min. Transcrição automática pelo mesmo caminho do chat.
+              Captura em blocos de 3 min. Transcrição automática via whisper.cpp local.
             </div>
           </button>
           <button
@@ -274,13 +258,8 @@ function CamaraPage() {
                   {s.titulo}
                 </span>
                 <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border border-[color:var(--border)] text-[color:var(--ivory-dim)]">
-                  {s.modo}
+                  {s.origem}
                 </span>
-                {s.status === "gravando" && (
-                  <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[color:var(--gold)]/15 text-[color:var(--gold)]">
-                    em curso
-                  </span>
-                )}
               </div>
               <div className="text-xs text-[color:var(--ivory-dim)] mt-1">
                 {new Date(s.created_at).toLocaleString("pt-BR")}
@@ -313,33 +292,26 @@ function SessaoDetalhe({ sessao: sessaoInicial, onBack }: { sessao: Sessao; onBa
   const chunksRef = useRef<Blob[]>([]);
   const segTimerRef = useRef<number | null>(null);
   const tickerRef = useRef<number | null>(null);
-  const ordemRef = useRef(0);
   const continueRef = useRef(true); // se devemos iniciar próximo bloco após onstop
-  const userIdRef = useRef<string | null>(null);
   const analisarFn = useServerFn(analisarCamara);
 
   // Mantém a tela ligada enquanto gravando OU enquanto há bloco transcrevendo.
-  const transcrevendo = segmentos.some((s) => s.status === "processing" || s.status === "queued");
+  const transcrevendo = segmentos.some((s) => s.status === "processing" || s.status === "pending");
   useWakeLock(recording || transcrevendo || finalizing);
 
   async function load() {
-    const { data } = await supabase
-      .from("camara_segmentos")
-      .select("*")
-      .eq("sessao_id", sessao.id)
-      .order("ordem", { ascending: true });
-    const segs = (data ?? []) as Segmento[];
+    const { segmentos: rows } = await getLocalCamaraSessao(sessao.id);
+    const segs = rows as Segmento[];
     setSegmentos(segs);
-    ordemRef.current = segs.reduce((m, s) => Math.max(m, s.ordem), 0);
     setTotalBlocos(segs.length);
   }
   useEffect(() => {
     void load();
   }, [sessao.id]);
 
-  // Re-enfileira segmentos que ficaram queued ou failed com blob local disponível
+  // Re-enfileira segmentos que ficaram pending/failed com blob local disponível
   useEffect(() => {
-    if (sessao.modo !== "audio") return;
+    if (sessao.origem !== "audio") return;
     (async () => {
       for (const s of segmentos) {
         if (s.status === "transcribed" || s.status === "processing") continue;
@@ -350,50 +322,23 @@ function SessaoDetalhe({ sessao: sessaoInicial, onBack }: { sessao: Sessao; onBa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [segmentos.length === 0 ? 0 : 1]);
 
-  async function ensureUser() {
-    if (userIdRef.current) return userIdRef.current;
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw new Error("não logado");
-    userIdRef.current = data.user.id;
-    return data.user.id;
-  }
-
   async function enviarBloco(seg: Segmento, blob: Blob) {
     try {
       setSegmentos((prev) =>
         prev.map((x) => (x.id === seg.id ? { ...x, status: "processing" } : x)),
       );
-      const userId = await ensureUser();
-
-      // upload de arquivo para arquivo (best-effort, paralelo)
-      const ext = blob.type.includes("mp4") ? "mp4" : blob.type.includes("ogg") ? "ogg" : "webm";
-      const path = `${userId}/${sessao.id}/${seg.id}.${ext}`;
-      void supabase.storage
-        .from("camara-audio")
-        .upload(path, blob, { contentType: blob.type, upsert: true })
-        .then((r) => {
-          if (!r.error)
-            void supabase.from("camara_segmentos").update({ audio_path: path }).eq("id", seg.id);
-        });
-
-      const form = new FormData();
-      form.append("file", blob, `segmento.${ext}`);
-      form.append("segmento_id", seg.id);
-      const res = await authedFetch("/api/camara-transcribe-segment", {
-        method: "POST",
-        body: form,
-      });
-      if (!res.ok) {
-        const msg = await res.text().catch(() => "falha");
+      const result = await transcreverLocalCamaraSegmento(seg.id, blob);
+      if (!result.ok) {
         setSegmentos((prev) =>
-          prev.map((x) => (x.id === seg.id ? { ...x, status: "failed", erro: msg } : x)),
+          prev.map((x) => (x.id === seg.id ? { ...x, status: "failed", erro: result.error } : x)),
         );
-        toast.error(`Bloco ${seg.ordem}: ${msg.slice(0, 120)}`);
+        toast.error(`Bloco ${seg.ordem + 1}: ${result.error.slice(0, 120)}`);
         return;
       }
-      const { text } = (await res.json()) as { text: string };
       setSegmentos((prev) =>
-        prev.map((x) => (x.id === seg.id ? { ...x, status: "transcribed", transcricao: text } : x)),
+        prev.map((x) =>
+          x.id === seg.id ? { ...x, status: "transcribed", transcricao: result.text } : x,
+        ),
       );
       await deleteBlob(seg.id);
     } catch (e) {
@@ -404,31 +349,9 @@ function SessaoDetalhe({ sessao: sessaoInicial, onBack }: { sessao: Sessao; onBa
     }
   }
 
-  async function criarSegmentoEEnviar(blob: Blob, ordem: number) {
-    const inicio = (ordem - 1) * SEGMENT_SECONDS;
-    const fim =
-      inicio +
-      Math.round(
-        blob.size > 0 ? Math.min(SEGMENT_SECONDS, elapsed || SEGMENT_SECONDS) : SEGMENT_SECONDS,
-      );
-    const userId = await ensureUser();
-    const { data, error } = await supabase
-      .from("camara_segmentos")
-      .insert({
-        user_id: userId,
-        sessao_id: sessao.id,
-        ordem,
-        inicio_seg: inicio,
-        fim_seg: fim,
-        status: "queued",
-      })
-      .select()
-      .single();
-    if (error || !data) {
-      toast.error("Falha ao criar segmento");
-      return;
-    }
-    const seg = data as Segmento;
+  async function criarSegmentoEEnviar(blob: Blob) {
+    const { segmento } = await createLocalCamaraSegmento(sessao.id);
+    const seg = segmento as Segmento;
     await putBlob(seg.id, blob);
     setSegmentos((prev) => [...prev, seg]);
     void enviarBloco(seg, blob);
@@ -445,10 +368,8 @@ function SessaoDetalhe({ sessao: sessaoInicial, onBack }: { sessao: Sessao; onBa
     };
     rec.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: rec.mimeType });
-      const ordem = ordemRef.current + 1;
-      ordemRef.current = ordem;
       setTotalBlocos((n) => n + 1);
-      if (blob.size > 1024) void criarSegmentoEEnviar(blob, ordem);
+      if (blob.size > 1024) void criarSegmentoEEnviar(blob);
       if (continueRef.current) {
         setElapsed(0);
         startRecorder();
@@ -492,8 +413,6 @@ function SessaoDetalhe({ sessao: sessaoInicial, onBack }: { sessao: Sessao; onBa
       tickerRef.current = null;
     }
     if (recRef.current && recRef.current.state === "recording") recRef.current.stop();
-    // finaliza sessão
-    await supabase.from("camara_sessoes").update({ status: "finalizado" }).eq("id", sessao.id);
     setFinalizing(false);
     toast.success("Câmara finalizada. Transcrições continuam em segundo plano.");
   }
@@ -520,7 +439,11 @@ function SessaoDetalhe({ sessao: sessaoInicial, onBack }: { sessao: Sessao; onBa
     setAnalisando(true);
     try {
       const analise = await analisarFn({ data: { sessao_id: sessao.id } });
-      setSessao((s) => ({ ...s, analise, analise_at: new Date().toISOString() }));
+      setSessao((s) => ({
+        ...s,
+        analise_json: JSON.stringify(analise),
+        analise_at: new Date().toISOString(),
+      }));
       toast.success("Análise pronta. Nenhuma memória foi criada automaticamente.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha na análise");
@@ -529,16 +452,19 @@ function SessaoDetalhe({ sessao: sessaoInicial, onBack }: { sessao: Sessao; onBa
     }
   }
 
+  const analise = analiseDe(sessao);
+
   const podeAnalisar =
-    (sessao.modo === "texto" && !!sessao.texto_rapido) ||
-    (sessao.modo === "audio" && segmentos.some((s) => s.transcricao));
+    (sessao.origem === "texto" && !!sessao.texto) ||
+    (sessao.origem === "audio" && segmentos.some((s) => s.transcricao));
 
   const transcricaoCompleta = segmentos
     .filter((s) => s.transcricao)
-    .map(
-      (s) =>
-        `[Bloco ${String(s.ordem).padStart(2, "0")} | ${fmt(s.inicio_seg)}–${fmt(s.fim_seg)}]\n${s.transcricao}`,
-    )
+    .map((s) => {
+      const inicio = s.ordem * SEGMENT_SECONDS;
+      const fim = inicio + SEGMENT_SECONDS;
+      return `[Bloco ${String(s.ordem + 1).padStart(2, "0")} | ${fmt(inicio)}–${fmt(fim)}]\n${s.transcricao}`;
+    })
     .join("\n\n");
 
   return (
@@ -553,21 +479,21 @@ function SessaoDetalhe({ sessao: sessaoInicial, onBack }: { sessao: Sessao; onBa
         {sessao.titulo}
       </h1>
       <p className="text-xs text-[color:var(--ivory-dim)] mb-6">
-        {new Date(sessao.created_at).toLocaleString("pt-BR")} · modo {sessao.modo}
+        {new Date(sessao.created_at).toLocaleString("pt-BR")} · origem {sessao.origem}
       </p>
 
-      {sessao.modo === "texto" && sessao.texto_rapido && (
+      {sessao.origem === "texto" && sessao.texto && (
         <div className="rounded-xl border border-[color:var(--border)] bg-card/60 p-4 whitespace-pre-wrap text-sm text-[color:var(--ivory)] break-words">
-          {sessao.texto_rapido}
+          {sessao.texto}
         </div>
       )}
 
-      {sessao.modo === "audio" && (
+      {sessao.origem === "audio" && (
         <>
           <div className="rounded-2xl border border-[color:var(--border)] bg-card p-5 mb-6 flex flex-col items-center">
             <button
               onClick={recording ? stop : start}
-              disabled={finalizing || sessao.status === "finalizado"}
+              disabled={finalizing}
               aria-label={recording ? "Parar gravação" : "Iniciar gravação"}
               className={`relative w-32 h-32 rounded-full flex items-center justify-center transition ${
                 recording ? "ring-4 ring-[color:var(--gold)] animate-pulse" : "hover:scale-105"
@@ -584,9 +510,7 @@ function SessaoDetalhe({ sessao: sessaoInicial, onBack }: { sessao: Sessao; onBa
               )}
             </button>
             <div className="mt-4 text-center">
-              {sessao.status === "finalizado" ? (
-                <div className="text-sm text-[color:var(--ivory-dim)]">Câmara finalizada</div>
-              ) : recording ? (
+              {recording ? (
                 <>
                   <div className="serif text-xl text-[color:var(--ivory)]">
                     Bloco {totalBlocos + 1} · {fmt(elapsed)} / {fmt(SEGMENT_SECONDS)}
@@ -610,34 +534,38 @@ function SessaoDetalhe({ sessao: sessaoInicial, onBack }: { sessao: Sessao; onBa
             </p>
           )}
           <ul className="space-y-3 mb-6">
-            {segmentos.map((s) => (
-              <li
-                key={s.id}
-                className="rounded-xl border border-[color:var(--border)] bg-card/60 p-3 sm:p-4"
-              >
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="text-sm text-[color:var(--ivory)] font-medium">
-                    Bloco {String(s.ordem).padStart(2, "0")} · {fmt(s.inicio_seg)}–{fmt(s.fim_seg)}
+            {segmentos.map((s) => {
+              const inicio = s.ordem * SEGMENT_SECONDS;
+              const fim = inicio + SEGMENT_SECONDS;
+              return (
+                <li
+                  key={s.id}
+                  className="rounded-xl border border-[color:var(--border)] bg-card/60 p-3 sm:p-4"
+                >
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="text-sm text-[color:var(--ivory)] font-medium">
+                      Bloco {String(s.ordem + 1).padStart(2, "0")} · {fmt(inicio)}–{fmt(fim)}
+                    </div>
+                    <StatusPill s={s.status} />
                   </div>
-                  <StatusPill s={s.status} />
-                </div>
-                {s.transcricao && (
-                  <p className="mt-2 text-sm text-[color:var(--ivory-dim)] whitespace-pre-wrap break-words">
-                    {s.transcricao}
-                  </p>
-                )}
-                {s.status === "failed" && (
-                  <div className="mt-2 flex items-center gap-3">
-                    {s.erro && (
-                      <span className="text-xs text-destructive break-words">{s.erro}</span>
-                    )}
-                    <Button size="sm" variant="outline" onClick={() => retryBloco(s)}>
-                      <RotateCw className="w-3 h-3 mr-1" /> tentar de novo
-                    </Button>
-                  </div>
-                )}
-              </li>
-            ))}
+                  {s.transcricao && (
+                    <p className="mt-2 text-sm text-[color:var(--ivory-dim)] whitespace-pre-wrap break-words">
+                      {s.transcricao}
+                    </p>
+                  )}
+                  {s.status === "failed" && (
+                    <div className="mt-2 flex items-center gap-3">
+                      {s.erro && (
+                        <span className="text-xs text-destructive break-words">{s.erro}</span>
+                      )}
+                      <Button size="sm" variant="outline" onClick={() => retryBloco(s)}>
+                        <RotateCw className="w-3 h-3 mr-1" /> tentar de novo
+                      </Button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
           {transcricaoCompleta && (
@@ -656,6 +584,7 @@ function SessaoDetalhe({ sessao: sessaoInicial, onBack }: { sessao: Sessao; onBa
       {/* Análise (Fase 2) + Ações revisáveis (Fase 3) — comum aos dois modos */}
       <AnaliseSection
         sessao={sessao}
+        analise={analise}
         podeAnalisar={podeAnalisar}
         analisando={analisando}
         onAnalisar={runAnalise}
@@ -671,7 +600,7 @@ function SessaoDetalhe({ sessao: sessaoInicial, onBack }: { sessao: Sessao; onBa
 
 function StatusPill({ s }: { s: Segmento["status"] }) {
   const map: Record<Segmento["status"], { label: string; cls: string }> = {
-    queued: { label: "fila", cls: "bg-muted text-[color:var(--ivory-dim)]" },
+    pending: { label: "fila", cls: "bg-muted text-[color:var(--ivory-dim)]" },
     processing: {
       label: "transcrevendo…",
       cls: "bg-[color:var(--gold)]/15 text-[color:var(--gold)]",
@@ -698,11 +627,13 @@ type Origem = "decisao" | "proximo_gesto" | "sinal" | "candidato_revisao" | "tem
 
 function AnaliseSection({
   sessao,
+  analise,
   podeAnalisar,
   analisando,
   onAnalisar,
 }: {
   sessao: Sessao;
+  analise: CamaraAnalise | null;
   podeAnalisar: boolean;
   analisando: boolean;
   onAnalisar: () => void;
@@ -711,7 +642,7 @@ function AnaliseSection({
     { tipo: "semear"; texto: string; origem: Origem } | { tipo: "kairos"; texto: string } | null
   >(null);
 
-  const a = sessao.analise;
+  const a = analise;
 
   return (
     <section className="mt-8">

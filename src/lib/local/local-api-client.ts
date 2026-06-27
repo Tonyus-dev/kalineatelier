@@ -83,38 +83,76 @@ async function localApiRequest<T>(path: string, init?: RequestInit): Promise<T> 
   return (await res.json()) as T;
 }
 
+export type LocalThread = {
+  id: string;
+  title: string;
+  facet: string;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+};
+
+export type LocalChatMessage = {
+  id: string;
+  thread_id: string;
+  role: "system" | "user" | "assistant";
+  content: string;
+  created_at: string;
+  metadata_json: string | null;
+};
+
 export function listLocalThreads() {
-  return localApiRequest<{ threads: unknown[] }>("/threads");
+  return localApiRequest<{ threads: LocalThread[] }>("/threads");
 }
 
 export function createLocalThread(input: { title?: string; facet: string }) {
-  return localApiRequest<{ thread: unknown }>("/threads", {
+  return localApiRequest<{ thread: LocalThread }>("/threads", {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
+export function getLocalThread(threadId: string) {
+  return localApiRequest<{ thread: LocalThread }>(`/threads/${threadId}`);
+}
+
 export function listLocalMessages(threadId: string) {
-  return localApiRequest<{ messages: unknown[] }>(`/messages/${threadId}`);
+  return localApiRequest<{ messages: LocalChatMessage[] }>(`/messages/${threadId}`);
 }
 
 export function sendLocalChatMessage(input: {
   threadId?: string;
   message: string;
   facet?: string;
+  system?: string;
 }) {
-  return localApiRequest<{ thread: unknown; userMessage: unknown; assistantMessage: unknown }>(
-    "/chat",
-    { method: "POST", body: JSON.stringify(input) },
-  );
+  return localApiRequest<{
+    thread: LocalThread;
+    userMessage: LocalChatMessage;
+    assistantMessage: LocalChatMessage;
+  }>("/chat", { method: "POST", body: JSON.stringify(input) });
 }
 
-export function listLocalRegistros() {
-  return localApiRequest<{ registros: unknown[] }>("/registro");
+export function listLocalRegistros(opts: { kind?: string; limit?: number; since?: string } = {}) {
+  const params = new URLSearchParams();
+  if (opts.kind) params.set("kind", opts.kind);
+  if (opts.limit) params.set("limit", String(opts.limit));
+  if (opts.since) params.set("since", opts.since);
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return localApiRequest<{ registros: unknown[] }>(`/registro${query}`);
 }
 
-export function listLocalMemories() {
-  return localApiRequest<{ memories: unknown[] }>("/memories");
+export function listLocalMemories(opts: { includeArchived?: boolean; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (opts.includeArchived) params.set("includeArchived", "true");
+  if (opts.limit) params.set("limit", String(opts.limit));
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return localApiRequest<{ memories: unknown[] }>(`/memories${query}`);
+}
+
+export function dueLocalMemorias(limit?: number) {
+  const query = limit ? `?limit=${limit}` : "";
+  return localApiRequest<{ memories: unknown[] }>(`/memories/due${query}`);
 }
 
 export function listLocalSediments(status?: string) {
@@ -127,6 +165,9 @@ export function createLocalRegistro(input: {
   title: string;
   content: string;
   source?: string;
+  mood?: number | null;
+  tags?: string[];
+  occurred_at?: string;
 }) {
   return localApiRequest<{ registro: unknown }>("/registro", {
     method: "POST",
@@ -138,7 +179,15 @@ export function archiveLocalRegistro(id: string) {
   return localApiRequest<{ ok: true }>(`/registro/${id}`, { method: "DELETE" });
 }
 
-export function createLocalMemoria(input: { title: string; content: string; tags?: string[] }) {
+export function createLocalMemoria(input: {
+  title: string;
+  content: string;
+  tags?: string[];
+  source?: string;
+  sourceRef?: string;
+  category?: string;
+  importance?: number;
+}) {
   return localApiRequest<{ memoria: unknown }>("/memories", {
     method: "POST",
     body: JSON.stringify(input),
@@ -220,6 +269,10 @@ export function listLocalSettings() {
   return localApiRequest<{ settings: unknown[] }>("/settings");
 }
 
+export function getLocalSetting(key: string) {
+  return localApiRequest<{ value: unknown }>(`/settings/${encodeURIComponent(key)}`);
+}
+
 export function putLocalSetting(key: string, value: unknown) {
   return localApiRequest<{ setting: unknown }>(`/settings/${encodeURIComponent(key)}`, {
     method: "PUT",
@@ -229,6 +282,46 @@ export function putLocalSetting(key: string, value: unknown) {
 
 export function getLocalIdentity() {
   return localApiRequest<{ summary: string; sources: string[] }>("/identity");
+}
+
+export function listLocalEventos(opts: { from?: string; to?: string } = {}) {
+  const params = new URLSearchParams();
+  if (opts.from) params.set("from", opts.from);
+  if (opts.to) params.set("to", opts.to);
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return localApiRequest<{ eventos: unknown[] }>(`/eventos${query}`);
+}
+
+export function createLocalEvento(input: {
+  titulo: string;
+  tipo: string;
+  inicio: string;
+  fim?: string | null;
+  local?: string | null;
+  descricao?: string | null;
+}) {
+  return localApiRequest<{ evento: unknown }>("/eventos", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteLocalEvento(id: string) {
+  return localApiRequest<{ ok: true }>(`/eventos/${id}`, { method: "DELETE" });
+}
+
+export type LocalPresencaState = "green" | "yellow" | "blue" | "red";
+
+export function getLocalPresenca() {
+  return localApiRequest<{
+    presenca: { id: "current"; state: LocalPresencaState; updated_at: string } | null;
+  }>("/presenca");
+}
+
+export function setLocalPresenca(state: LocalPresencaState) {
+  return localApiRequest<{
+    presenca: { id: "current"; state: LocalPresencaState; updated_at: string };
+  }>("/presenca", { method: "PUT", body: JSON.stringify({ state }) });
 }
 
 export type LocalModelStatus = {
@@ -485,6 +578,174 @@ export function saveLocalMeeting(input: {
 
 export function listLocalMeetings() {
   return localApiRequest<{ meetings: unknown[] }>("/meetings");
+}
+
+// --- Câmara de Eco (sessões de escuta, texto ou áudio segmentado) ---
+
+export function listLocalCamaraSessoes() {
+  return localApiRequest<{ sessoes: unknown[] }>("/camara/sessoes");
+}
+
+export function createLocalCamaraSessao(input: {
+  titulo: string;
+  origem: "audio" | "texto";
+  texto?: string;
+}) {
+  return localApiRequest<{ sessao: unknown }>("/camara/sessoes", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getLocalCamaraSessao(id: string) {
+  return localApiRequest<{ sessao: unknown; segmentos: unknown[] }>(`/camara/sessoes/${id}`);
+}
+
+export function deleteLocalCamaraSessao(id: string) {
+  return localApiRequest<{ ok: true }>(`/camara/sessoes/${id}`, { method: "DELETE" });
+}
+
+export function createLocalCamaraSegmento(sessaoId: string) {
+  return localApiRequest<{ segmento: unknown }>(`/camara/sessoes/${sessaoId}/segmentos`, {
+    method: "POST",
+  });
+}
+
+export type LocalCamaraTranscreverResult =
+  | { ok: true; text: string }
+  | { ok: false; error: string };
+
+export async function transcreverLocalCamaraSegmento(
+  segmentoId: string,
+  file: Blob,
+): Promise<LocalCamaraTranscreverResult> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file, "segmento.webm");
+    const res = await fetch(localApiUrl(`/camara/segmentos/${segmentoId}/transcrever`), {
+      method: "POST",
+      body: formData,
+    });
+    const body = await res.json();
+    if (!res.ok) return { ok: false, error: body?.error ?? `API local respondeu ${res.status}.` };
+    return { ok: true, text: body.text };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Falha ao transcrever o segmento.",
+    };
+  }
+}
+
+export function analisarLocalCamaraSessao(sessaoId: string) {
+  return localApiRequest<{
+    resumo_operacional: string;
+    interlocutores: { nome: string; confianca: string }[];
+    temas: string[];
+    decisoes: string[];
+    sinais: string[];
+    proximos_gestos: string[];
+    candidatos_revisao: string[];
+  }>(`/camara/sessoes/${sessaoId}/analisar`, { method: "POST" });
+}
+
+export function semearLocalCamaraHipotese(
+  sessaoId: string,
+  input: { title: string; body: string; origem: string },
+) {
+  return localApiRequest<{ id: string }>(`/camara/sessoes/${sessaoId}/semear`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function criarLocalCamaraKairos(
+  sessaoId: string,
+  input: {
+    titulo: string;
+    descricao?: string;
+    inicio: string;
+    fim?: string | null;
+    tipo?: string;
+  },
+) {
+  return localApiRequest<{ id: string }>(`/camara/sessoes/${sessaoId}/kairos`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// --- Livros & Resumos ---
+
+export type LocalLivro = {
+  id: string;
+  titulo: string;
+  autor: string | null;
+  texto_extraido: string;
+  resumo: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export function listLocalLivros() {
+  return localApiRequest<{ livros: LocalLivro[] }>("/livros");
+}
+
+export function createLocalLivro(input: {
+  titulo: string;
+  autor?: string;
+  texto_extraido: string;
+}) {
+  return localApiRequest<{ livro: LocalLivro }>("/livros", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteLocalLivro(id: string) {
+  return localApiRequest<{ ok: true }>(`/livros/${id}`, { method: "DELETE" });
+}
+
+export function gerarLocalResumoLivro(id: string) {
+  return localApiRequest<{ resumo: string }>(`/livros/${id}/resumo`, { method: "POST" });
+}
+
+// --- Contexto externo ---
+
+export type LocalContextoExterno = {
+  id: string;
+  titulo: string;
+  conteudo: string;
+  tipo: "identidade" | "memoria_relacional";
+  ativo: 0 | 1;
+  created_at: string;
+  updated_at: string;
+};
+
+export function listLocalContextosExternos() {
+  return localApiRequest<{ contextos: LocalContextoExterno[] }>("/contexto-externo");
+}
+
+export function createLocalContextoExterno(input: {
+  titulo: string;
+  conteudo: string;
+  tipo?: "identidade" | "memoria_relacional";
+}) {
+  return localApiRequest<{ contexto: LocalContextoExterno }>("/contexto-externo", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function toggleLocalContextoExterno(id: string, ativo: boolean) {
+  return localApiRequest<{ ok: true }>(`/contexto-externo/${id}/toggle`, {
+    method: "POST",
+    body: JSON.stringify({ ativo }),
+  });
+}
+
+export function deleteLocalContextoExterno(id: string) {
+  return localApiRequest<{ ok: true }>(`/contexto-externo/${id}`, { method: "DELETE" });
 }
 
 // --- Voz (Kokoro, voz Dora) com fallback honesto para o navegador ---

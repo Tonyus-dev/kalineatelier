@@ -1,38 +1,17 @@
+// Livros & Resumos, Kaline Offline.
+//
+// Simplificação deliberada em relação à versão online: o fichamento é
+// gerado pelo local-server (Ollama ou mock sem provider configurado),
+// associado a um livro já criado. Não há mais geração de infográfico
+// (dependia de um modelo de imagem via OpenRouter, fora do escopo offline).
 import { createServerFn } from "@tanstack/react-start";
-import { generateText } from "ai";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { gerarLocalResumoLivro } from "@/lib/local/local-api-client";
 
-const ResumirInput = z.object({
-  texto: z.string().min(20),
-  tipo: z.enum(["reuniao", "livro"]),
-});
+const ResumirInput = z.object({ livro_id: z.string().min(1) });
 
 export const resumirConteudo = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => ResumirInput.parse(d))
   .handler(async ({ data }) => {
-    // Imports server-only dinâmicos: este módulo é referenciado por rotas de
-    // cliente via RPC, então import estático de `*.server.*` quebra o build.
-    const { createOpenRouterProvider } = await import("@/lib/openrouter.server");
-    const { AI_MODELS } = await import("@/lib/ai-models.server");
-    let gateway: ReturnType<typeof createOpenRouterProvider>;
-    try {
-      gateway = createOpenRouterProvider();
-    } catch (err) {
-      console.error("AI provider configuration error", err instanceof Error ? err.message : err);
-      throw new Error("A IA ainda não está configurada neste ambiente.");
-    }
-
-    const system =
-      data.tipo === "reuniao"
-        ? "Resuma a transcrição da reunião em markdown: tópicos discutidos, decisões, tarefas, citações importantes."
-        : "Faça um fichamento acadêmico do texto em markdown: tese central, estrutura, conceitos-chave, citações relevantes, perguntas para revisão.";
-
-    const { text } = await generateText({
-      model: gateway(AI_MODELS.fast),
-      system,
-      prompt: data.texto.slice(0, 60000),
-    });
-    return { resumo: text };
+    return gerarLocalResumoLivro(data.livro_id);
   });

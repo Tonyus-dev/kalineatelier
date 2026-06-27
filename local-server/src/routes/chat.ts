@@ -7,6 +7,7 @@ const chatSchema = z.object({
   threadId: z.string().optional(),
   message: z.string().min(1),
   facet: z.enum(FACETS).optional(),
+  system: z.string().optional(),
 });
 
 export async function registerChatRoutes(app: FastifyInstance): Promise<void> {

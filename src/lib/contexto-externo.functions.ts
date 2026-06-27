@@ -2,7 +2,12 @@
 // e Kaline passa a ler como diretriz adicional (até `ativo = false` ou apagado).
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  createLocalContextoExterno,
+  deleteLocalContextoExterno,
+  listLocalContextosExternos,
+  toggleLocalContextoExterno,
+} from "@/lib/local/local-api-client";
 
 const MAX_CONTEUDO = 60_000;
 
@@ -12,70 +17,39 @@ const createSchema = z.object({
 });
 
 const toggleSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().min(1),
   ativo: z.boolean(),
 });
 
-const idSchema = z.object({ id: z.string().uuid() });
+const idSchema = z.object({ id: z.string().min(1) });
 
-export const listarContextos = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { data, error } = await supabase
-      .from("contexto_externo" as never)
-      .select("id, titulo, conteudo, ativo, created_at, updated_at")
-      .eq("user_id", userId)
-      .order("updated_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return (data ?? []) as Array<{
-      id: string;
-      titulo: string;
-      conteudo: string;
-      ativo: boolean;
-      created_at: string;
-      updated_at: string;
-    }>;
-  });
+export const listarContextos = createServerFn({ method: "GET" }).handler(async () => {
+  const { contextos } = await listLocalContextosExternos();
+  return contextos.map((c) => ({
+    id: c.id,
+    titulo: c.titulo,
+    conteudo: c.conteudo,
+    ativo: !!c.ativo,
+    created_at: c.created_at,
+    updated_at: c.updated_at,
+  }));
+});
 
 export const criarContexto = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => createSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { data: row, error } = await supabase
-      .from("contexto_externo" as never)
-      .insert({ user_id: userId, titulo: data.titulo, conteudo: data.conteudo } as never)
-      .select("id")
-      .single();
-    if (error || !row) throw new Error(error?.message ?? "Falha ao salvar");
-    return { id: (row as { id: string }).id };
+  .handler(async ({ data }) => {
+    const { contexto } = await createLocalContextoExterno(data);
+    return { id: contexto.id };
   });
 
 export const toggleContexto = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => toggleSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { error } = await supabase
-      .from("contexto_externo" as never)
-      .update({ ativo: data.ativo, updated_at: new Date().toISOString() } as never)
-      .eq("id", data.id)
-      .eq("user_id", userId);
-    if (error) throw new Error(error.message);
-    return { ok: true };
+  .handler(async ({ data }) => {
+    return toggleLocalContextoExterno(data.id, data.ativo);
   });
 
 export const apagarContexto = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => idSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { error } = await supabase
-      .from("contexto_externo" as never)
-      .delete()
-      .eq("id", data.id)
-      .eq("user_id", userId);
-    if (error) throw new Error(error.message);
-    return { ok: true };
+  .handler(async ({ data }) => {
+    return deleteLocalContextoExterno(data.id);
   });

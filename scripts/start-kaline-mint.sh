@@ -37,10 +37,33 @@ pid_is_running() {
   [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
 }
 
+LOCAL_SERVER_ENV_STAMP="$KALINE_RUN_DIR/local-server.env.stamp"
+
+stop_local_server() {
+  local pid
+  pid="$(cat "$LOCAL_SERVER_PID_FILE" 2>/dev/null)"
+  [ -n "$pid" ] || return 0
+  kaline_log "Reiniciando local-server (PID $pid) para aplicar mudanças em local-server/.env ..."
+  kill "$pid" 2>/dev/null
+  local waited=0
+  while kill -0 "$pid" 2>/dev/null && [ "$waited" -lt 5 ]; do
+    sleep 1
+    waited=$((waited+1))
+  done
+  if kill -0 "$pid" 2>/dev/null; then
+    kaline_warn "local-server (PID $pid) não parou a tempo — forçando com kill -9."
+    kill -9 "$pid" 2>/dev/null
+  fi
+  rm -f "$LOCAL_SERVER_PID_FILE"
+}
+
 start_local_server() {
   if pid_is_running "$LOCAL_SERVER_PID_FILE"; then
-    kaline_ok "local-server já está rodando (PID $(cat "$LOCAL_SERVER_PID_FILE"))."
-    return 0
+    if [ -f "local-server/.env" ] && [ -f "$LOCAL_SERVER_ENV_STAMP" ] && [ "local-server/.env" -ot "$LOCAL_SERVER_ENV_STAMP" ]; then
+      kaline_ok "local-server já está rodando (PID $(cat "$LOCAL_SERVER_PID_FILE"))."
+      return 0
+    fi
+    stop_local_server
   fi
   if kaline_port_in_use 64113; then
     kaline_warn "Porta 64113 já está em uso por outro processo (não iniciado por este script)."
@@ -53,6 +76,7 @@ start_local_server() {
   (cd local-server && setsid nohup npm run "$run_script" >"$KALINE_LOG_DIR/local-server.log" 2>&1 &
    echo $! > "$LOCAL_SERVER_PID_FILE")
   sleep 2
+  touch "$LOCAL_SERVER_ENV_STAMP"
   kaline_ok "local-server iniciado."
 }
 
@@ -65,12 +89,20 @@ start_pwa() {
     kaline_warn "Porta 4173 já está em uso por outro processo (não iniciado por este script)."
     return 0
   fi
+  if [ ! -d "dist" ]; then
+    kaline_warn "dist/ não existe ainda — tentando 'bun run build' antes de iniciar a PWA ..."
+    if bun run build; then
+      kaline_ok "Frontend buildado em dist/."
+    else
+      kaline_warn "'bun run build' falhou."
+    fi
+  fi
   if [ -d "dist" ]; then
     kaline_log "Iniciando PWA (bun run preview) em http://127.0.0.1:4173 (log: $KALINE_LOG_DIR/pwa.log) ..."
     (setsid nohup bun run preview --port 4173 --host 127.0.0.1 >"$KALINE_LOG_DIR/pwa.log" 2>&1 &
      echo $! > "$PWA_PID_FILE")
   else
-    kaline_warn "dist/ não existe ainda (rode 'bun run build' ou o instalador). Usando 'bun run dev' como alternativa."
+    kaline_warn "dist/ continua ausente após tentativa de build — usando 'bun run dev' como último recurso (NÃO recomendado para testes equivalentes a produção; rotas SSR e variáveis de build podem se comportar diferente)."
     (setsid nohup bun run dev --port 4173 --host 127.0.0.1 >"$KALINE_LOG_DIR/pwa.log" 2>&1 &
      echo $! > "$PWA_PID_FILE")
   fi

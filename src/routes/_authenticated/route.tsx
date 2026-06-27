@@ -1,20 +1,19 @@
 import { kalineWordmark } from "@/lib/brand-assets";
 import { kalineApple } from "@/lib/brand-assets";
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { PRESENCA_META, usePresencaRegime } from "@/lib/use-presenca-regime";
 
+// Kaline Offline é monousuário e local: não há sessão remota a validar.
+// Mantém o shape `{ user }` no contexto da rota por compatibilidade com
+// loaders/componentes que já leem `context.user`.
+const LOCAL_USER = { id: "local", email: "local@kaline.offline" };
+
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    // getSession() lê do storage local (sem round-trip de rede), evitando uma
-    // chamada à Supabase a cada navegação. A autorização sensível continua
-    // validada no servidor a cada chamada de API (requireUser).
-    const { data, error } = await supabase.auth.getSession();
-    if (error || !data.session?.user) throw redirect({ to: "/auth" });
-    return { user: data.session.user };
+    return { user: LOCAL_USER };
   },
   component: AuthedLayout,
 });

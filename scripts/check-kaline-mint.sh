@@ -57,6 +57,19 @@ else
   check_warn "curl não encontrado — não foi possível testar as rotas do local-server"
 fi
 
+if kaline_port_in_use 4173 && command -v curl >/dev/null 2>&1; then
+  CHAT_BODY="$(curl -sf --max-time 3 -L "http://127.0.0.1:4173/chat" 2>/dev/null)"
+  if [ -z "$CHAT_BODY" ]; then
+    check_warn "Não foi possível obter resposta de http://127.0.0.1:4173/chat (PWA pode estar iniciando ainda)"
+  elif echo "$CHAT_BODY" | grep -q "Missing Supabase environment variable"; then
+    check_err "/chat retornou erro de variável de ambiente do Supabase — regressão de acoplamento com Supabase"
+  elif echo "$CHAT_BODY" | grep -q "TSRSplitComponent"; then
+    check_err "/chat retornou 'TSRSplitComponent' — bug conhecido de SSR/code-splitting"
+  else
+    check_ok "/chat respondeu sem indícios de regressão conhecida"
+  fi
+fi
+
 if command -v ollama >/dev/null 2>&1; then
   check_ok "ollama encontrado"
   if curl -sf --max-time 2 "http://127.0.0.1:11434/api/tags" >/dev/null 2>&1; then
@@ -76,6 +89,26 @@ if command -v ollama >/dev/null 2>&1; then
   fi
 else
   check_warn "ollama não encontrado — provider de modelo local ficará indisponível (mock continua funcionando)"
+fi
+
+if [ -f "local-server/.env" ] && command -v curl >/dev/null 2>&1; then
+  ENV_PROVIDER="$(grep -m1 '^KALINE_MODEL_PROVIDER=' local-server/.env | cut -d= -f2-)"
+  LIVE_STATUS="$(curl -sf --max-time 2 "http://127.0.0.1:64113/model/status" 2>/dev/null)"
+  LIVE_PROVIDER=""
+  if [ -n "$LIVE_STATUS" ]; then
+    LIVE_PROVIDER="$(echo "$LIVE_STATUS" | grep -o '"provider"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n1 | cut -d'"' -f4)"
+  fi
+  if [ -n "$ENV_PROVIDER" ] && [ -n "$LIVE_PROVIDER" ]; then
+    if [ "$ENV_PROVIDER" = "$LIVE_PROVIDER" ]; then
+      check_ok "Provider de modelo consistente: $LIVE_PROVIDER (env e local-server batem)"
+    else
+      check_err "Provider de modelo divergente: local-server/.env diz '$ENV_PROVIDER', mas o local-server em execução reporta '$LIVE_PROVIDER'. Reinicie o local-server (bash scripts/start-kaline-mint.sh) para aplicar a config nova."
+    fi
+  else
+    check_warn "Não foi possível confirmar o provider de modelo (env ou /model/status indisponível) — pulei a checagem de consistência."
+  fi
+else
+  check_warn "Sem local-server/.env ou curl — não foi possível checar consistência do provider de modelo"
 fi
 
 if [ -f "local-server/.env" ]; then

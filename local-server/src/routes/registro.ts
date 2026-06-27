@@ -14,6 +14,9 @@ const createSchema = z.object({
   title: z.string().min(1),
   content: z.string().min(1),
   source: z.string().optional(),
+  mood: z.number().int().min(-3).max(3).nullable().optional(),
+  tags: z.array(z.string()).optional(),
+  occurred_at: z.string().optional(),
 });
 const patchSchema = z.object({
   title: z.string().optional(),
@@ -23,12 +26,18 @@ const patchSchema = z.object({
 
 export async function registerRegistroRoutes(app: FastifyInstance): Promise<void> {
   app.get("/registro", async (req) => {
-    const query = req.query as { kind?: string; includeArchived?: string; limit?: string };
+    const query = req.query as {
+      kind?: string;
+      includeArchived?: string;
+      limit?: string;
+      since?: string;
+    };
     return {
       registros: listRegistros(getDb(), {
         kind: query.kind as (typeof REGISTRO_KINDS)[number] | undefined,
         includeArchived: query.includeArchived === "true",
         limit: query.limit ? Number(query.limit) : undefined,
+        since: query.since,
       }),
     };
   });

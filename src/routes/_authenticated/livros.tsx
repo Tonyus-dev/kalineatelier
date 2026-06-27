@@ -1,13 +1,24 @@
+// Livros & Resumos, Kaline Offline.
+//
+// Simplificação deliberada em relação à versão online: o texto extraído
+// (PDF/DOCX/TXT) é processado no navegador como antes, mas o arquivo
+// original não é mais enviado a nenhum storage — só o texto extraído é
+// salvo no local-server (SQLite). Geração de infográfico foi removida
+// (dependia de um modelo de imagem via OpenRouter, fora do escopo offline).
 import { createFileRoute } from "@tanstack/react-router";
-import { authedFetch } from "@/lib/authed-fetch";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { LazyMarkdown } from "@/components/LazyMarkdown";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  createLocalLivro,
+  deleteLocalLivro,
+  listLocalLivros,
+  type LocalLivro,
+} from "@/lib/local/local-api-client";
 import { resumirConteudo } from "@/lib/resumo.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, Loader2, Sparkles, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Upload, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { RouteErrorBoundary, RouteNotFoundBoundary } from "@/components/loading-states";
@@ -17,17 +28,6 @@ export const Route = createFileRoute("/_authenticated/livros")({
   errorComponent: RouteErrorBoundary,
   notFoundComponent: () => <RouteNotFoundBoundary />,
 });
-
-type Livro = {
-  id: string;
-  titulo: string;
-  autor: string | null;
-  arquivo_path: string | null;
-  texto_extraido: string | null;
-  resumo: string | null;
-  infografico_url: string | null;
-  created_at: string;
-};
 
 async function extractPdfText(file: File): Promise<string> {
   const pdfjs = await import("pdfjs-dist");
@@ -46,18 +46,15 @@ async function extractPdfText(file: File): Promise<string> {
 }
 
 function LivrosPage() {
-  const [items, setItems] = useState<Livro[]>([]);
+  const [items, setItems] = useState<LocalLivro[]>([]);
   const [titulo, setTitulo] = useState("");
   const [autor, setAutor] = useState("");
   const [busy, setBusy] = useState(false);
   const resumir = useServerFn(resumirConteudo);
 
   async function load() {
-    const { data } = await supabase
-      .from("livros")
-      .select("id, titulo, autor, arquivo_path, resumo, infografico_url, created_at")
-      .order("created_at", { ascending: false });
-    setItems((data ?? []) as Livro[]);
+    const { livros } = await listLocalLivros();
+    setItems(livros);
   }
   useEffect(() => {
     load();
@@ -72,8 +69,6 @@ function LivrosPage() {
     }
     setBusy(true);
     try {
-      const { data: userRes } = await supabase.auth.getUser();
-      if (!userRes.user) throw new Error("não logado");
       let text = "";
       if (f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")) {
         text = await extractPdfText(f);
@@ -87,17 +82,10 @@ function LivrosPage() {
       } else {
         throw new Error("Formato não suportado (use PDF, DOCX ou TXT)");
       }
-      const path = `${userRes.user.id}/${crypto.randomUUID()}-${f.name}`;
-      const up = await supabase.storage
-        .from("livros-docs")
-        .upload(path, f, { contentType: f.type });
-      if (up.error) throw up.error;
 
-      await supabase.from("livros").insert({
-        user_id: userRes.user.id,
+      await createLocalLivro({
         titulo,
-        autor: autor || null,
-        arquivo_path: path,
+        autor: autor || undefined,
         texto_extraido: text.slice(0, 120000),
       });
       setTitulo("");
@@ -112,22 +100,10 @@ function LivrosPage() {
     }
   }
 
-  async function fazerResumo(it: Livro) {
+  async function fazerResumo(it: LocalLivro) {
     setBusy(true);
     try {
-      let texto = it.texto_extraido;
-      if (!texto) {
-        const { data, error } = await supabase
-          .from("livros")
-          .select("texto_extraido")
-          .eq("id", it.id)
-          .maybeSingle();
-        if (error) throw error;
-        texto = data?.texto_extraido ?? null;
-      }
-      if (!texto) throw new Error("Texto extraído indisponível");
-      const r = await resumir({ data: { texto, tipo: "livro" } });
-      await supabase.from("livros").update({ resumo: r.resumo }).eq("id", it.id);
+      await resumir({ data: { livro_id: it.id } });
       load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro");
@@ -136,50 +112,8 @@ function LivrosPage() {
     }
   }
 
-  async function gerarInfografico(it: Livro) {
-    if (!it.resumo) {
-      toast.error("Gere o resumo primeiro");
-      return;
-    }
-    setBusy(true);
-    try {
-      const prompt = `Crie um infográfico vertical em estilo limpo e elegante (vinho escuro e dourado, tipografia serifada) ilustrando o seguinte resumo de "${it.titulo}":\n\n${it.resumo.slice(0, 1500)}`;
-      const res = await authedFetch("/api/generate-infografico", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const { image } = (await res.json()) as { image: string | null };
-      if (!image) throw new Error("Sem imagem retornada");
-      // Upload to storage
-      const blob = await (await fetch(image)).blob();
-      const { data: userRes } = await supabase.auth.getUser();
-      if (!userRes.user) return;
-      const path = `${userRes.user.id}/${crypto.randomUUID()}.png`;
-      const up = await supabase.storage
-        .from("infograficos")
-        .upload(path, blob, { contentType: "image/png" });
-      if (up.error) throw up.error;
-      const { data: signed } = await supabase.storage
-        .from("infograficos")
-        .createSignedUrl(path, 60 * 60 * 24 * 365);
-      await supabase
-        .from("livros")
-        .update({ infografico_url: signed?.signedUrl ?? null })
-        .eq("id", it.id);
-      toast.success("Infográfico gerado");
-      load();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function remover(it: Livro) {
-    if (it.arquivo_path) await supabase.storage.from("livros-docs").remove([it.arquivo_path]);
-    await supabase.from("livros").delete().eq("id", it.id);
+  async function remover(it: LocalLivro) {
+    await deleteLocalLivro(it.id);
     load();
   }
 
@@ -187,7 +121,7 @@ function LivrosPage() {
     <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
       <h1 className="serif text-2xl sm:text-3xl text-[color:var(--gold)] mb-1">Livros & Resumos</h1>
       <p className="text-[color:var(--ivory-dim)] text-sm mb-5 sm:mb-6">
-        Envie PDF, DOCX ou TXT. Gere fichamento e infográfico do conteúdo.
+        Envie PDF, DOCX ou TXT. Gere fichamento do conteúdo.
       </p>
 
       <div className="rounded-2xl border border-[color:var(--border)] bg-card p-4 sm:p-5 mb-8 space-y-3">
@@ -258,22 +192,6 @@ function LivrosPage() {
               >
                 <Sparkles className="w-3 h-3 mr-1" /> Gerar fichamento
               </Button>
-            )}
-
-            {it.infografico_url ? (
-              <img src={it.infografico_url} alt="" className="mt-4 rounded-lg w-full max-w-sm" />
-            ) : (
-              it.resumo && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => gerarInfografico(it)}
-                  disabled={busy}
-                  className="mt-3 sm:ml-2 w-full sm:w-auto"
-                >
-                  <ImageIcon className="w-3 h-3 mr-1" /> Gerar infográfico
-                </Button>
-              )
             )}
           </li>
         ))}

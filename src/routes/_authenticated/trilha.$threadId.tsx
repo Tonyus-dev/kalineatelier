@@ -96,8 +96,8 @@ function TrilhaPage() {
       });
       if (r.promovido === 0) {
         alert(
-          r.motivo === "sem convergência"
-            ? "As 5 hipóteses não convergem — nada promovido."
+          r.motivo === "nivel terminal"
+            ? "A trilha offline opera em um único nível — não há síntese 5→1 entre sedimentos."
             : `Faltam hipóteses confirmadas neste nível.`,
         );
       }

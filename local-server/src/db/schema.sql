@@ -33,6 +33,9 @@ CREATE TABLE IF NOT EXISTS registro_vivo (
   title TEXT NOT NULL,
   content TEXT NOT NULL,
   source TEXT,
+  mood INTEGER,
+  tags_json TEXT NOT NULL DEFAULT '[]',
+  occurred_at TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   archived_at TEXT
@@ -47,6 +50,10 @@ CREATE TABLE IF NOT EXISTS jardim_memorias (
   interval_days INTEGER NOT NULL DEFAULT 0,
   due_at TEXT,
   review_count INTEGER NOT NULL DEFAULT 0,
+  source TEXT,
+  source_ref TEXT,
+  category TEXT NOT NULL DEFAULT 'geral',
+  importance INTEGER NOT NULL DEFAULT 2,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   archived_at TEXT,
@@ -94,8 +101,76 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS eventos (
+  id TEXT PRIMARY KEY,
+  titulo TEXT NOT NULL,
+  descricao TEXT,
+  tipo TEXT NOT NULL CHECK (tipo IN ('compromisso', 'aula', 'reuniao', 'evento', 'prazo', 'outro')),
+  inicio TEXT NOT NULL,
+  fim TEXT,
+  local TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_eventos_inicio ON eventos(inicio);
+
+-- Semáforo: estado único de presença/regime. Linha única (id fixo "current").
+CREATE TABLE IF NOT EXISTS presenca_regime (
+  id TEXT PRIMARY KEY CHECK (id = 'current'),
+  state TEXT NOT NULL CHECK (state IN ('green', 'yellow', 'blue', 'red')),
+  updated_at TEXT NOT NULL
+);
+
 -- Preparado para a ponte futura. Nesta fase só recebe eventos locais via API,
 -- sem criptografia, Worker ou sync.
+-- Câmara de Eco: sessões (texto livre ou áudio segmentado) + análise opcional.
+CREATE TABLE IF NOT EXISTS camara_sessoes (
+  id TEXT PRIMARY KEY,
+  titulo TEXT NOT NULL,
+  origem TEXT NOT NULL CHECK (origem IN ('audio', 'texto')),
+  texto TEXT,
+  analise_json TEXT,
+  analise_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS camara_segmentos (
+  id TEXT PRIMARY KEY,
+  sessao_id TEXT NOT NULL REFERENCES camara_sessoes(id) ON DELETE CASCADE,
+  ordem INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'processing', 'transcribed', 'failed')) DEFAULT 'pending',
+  transcricao TEXT,
+  erro TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_camara_segmentos_sessao ON camara_segmentos(sessao_id, ordem);
+
+-- Livros & Resumos: texto já extraído no cliente (PDF/DOCX/TXT), fichamento
+-- gerado opcionalmente via modelo local.
+CREATE TABLE IF NOT EXISTS livros (
+  id TEXT PRIMARY KEY,
+  titulo TEXT NOT NULL,
+  autor TEXT,
+  texto_extraido TEXT NOT NULL,
+  resumo TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- Contexto externo: blocos de identidade/memória relacional migrados de outra
+-- instância, injetados como diretriz adicional no system prompt enquanto ativos.
+CREATE TABLE IF NOT EXISTS contexto_externo (
+  id TEXT PRIMARY KEY,
+  titulo TEXT NOT NULL,
+  conteudo TEXT NOT NULL,
+  tipo TEXT NOT NULL CHECK (tipo IN ('identidade', 'memoria_relacional')) DEFAULT 'identidade',
+  ativo INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS inbox_events (
   id TEXT PRIMARY KEY,
   source TEXT NOT NULL,

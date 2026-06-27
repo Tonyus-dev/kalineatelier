@@ -119,6 +119,7 @@ export class ChatModelError extends Error {}
 
 async function generateAssistantReply(
   userMessage: string,
+  systemPrompt?: string,
 ): Promise<{ content: string; metadata?: Record<string, unknown> }> {
   if (MODEL_CONFIG.provider !== "ollama") {
     return { content: mockGenerate(userMessage) };
@@ -129,7 +130,10 @@ async function generateAssistantReply(
     const result = await ollamaChat({
       model: MODEL_CONFIG.ollama.models.general,
       messages: [
-        { role: "system", content: "Você é Kaline Offline, assistente local e privada." },
+        {
+          role: "system",
+          content: systemPrompt || "Você é Kaline Offline, assistente local e privada.",
+        },
         { role: "user", content: userMessage },
       ],
     });
@@ -170,7 +174,7 @@ async function generateAssistantReply(
 
 export async function runChat(
   db: Database.Database,
-  input: { threadId?: string; message: string; facet?: Facet },
+  input: { threadId?: string; message: string; facet?: Facet; system?: string },
 ): Promise<{ thread: ThreadRow; userMessage: MessageRow; assistantMessage: MessageRow }> {
   const thread = input.threadId
     ? (getThread(db, input.threadId) ?? createThread(db, { facet: input.facet ?? "kaline" }))
@@ -182,7 +186,7 @@ export async function runChat(
     content: input.message,
   });
 
-  const reply = await generateAssistantReply(input.message);
+  const reply = await generateAssistantReply(input.message, input.system);
 
   const assistantMessage = insertMessage(db, {
     threadId: thread.id,
