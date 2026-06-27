@@ -1,7 +1,7 @@
-// Trilha de sedimentação inline + leitura de provenance.
-// Cliente puro (sem chamada AI) — só lê o que já existe.
+// Trilha de sedimentação inline + leitura de provenance — Kaline Offline.
+// Cliente puro (sem chamada AI) — só lê o que já existe no local-server.
 
-import { supabase } from "@/integrations/supabase/client";
+import { listLocalMessages, listLocalSediments } from "@/lib/local/local-api-client";
 
 export type SedimentoRow = {
   id: string;
@@ -26,31 +26,64 @@ export type ChatMessageRow = {
   derived_from: string[];
 };
 
-export async function loadTrilha(threadId: string) {
-  const { data: userRes } = await supabase.auth.getUser();
-  const userId = userRes.user?.id;
-  if (!userId) return { messages: [], sedimentos: [] };
+type LocalSedimentoRow = {
+  id: string;
+  source_type: string;
+  source_id: string;
+  level: number;
+  content: string;
+  status: string;
+  created_at: string;
+  metadata_json: string | null;
+};
 
-  const [msgsRes, sedsRes] = await Promise.all([
-    supabase
-      .from("chat_messages")
-      .select("id, role, content, created_at, derived_from")
-      .eq("thread_id", threadId)
-      .eq("user_id", userId)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("sedimentos")
-      .select(
-        "id, thread_id, nivel, status, source_kind, source_ids, hipotese, resumo, confianca, created_at, promovido_para, promovido_tipo",
-      )
-      .eq("thread_id", threadId)
-      .eq("user_id", userId)
-      .order("created_at", { ascending: true }),
-  ]);
+type LocalMessageRow = {
+  id: string;
+  role: string;
+  content: string;
+  created_at: string;
+};
+
+function toSedimentoRow(row: LocalSedimentoRow, threadId: string): SedimentoRow | null {
+  const metadata = row.metadata_json
+    ? (JSON.parse(row.metadata_json) as { threadId?: string; messageIds?: string[] })
+    : null;
+  if (!metadata || metadata.threadId !== threadId) return null;
   return {
-    messages: (msgsRes.data ?? []) as ChatMessageRow[],
-    sedimentos: (sedsRes.data ?? []) as SedimentoRow[],
+    id: row.id,
+    thread_id: threadId,
+    nivel: "short_term",
+    status: row.status,
+    source_kind: row.source_type === "chat_window" ? "chat_message" : row.source_type,
+    source_ids: metadata.messageIds ?? [],
+    hipotese: row.content,
+    resumo: null,
+    confianca: 2,
+    created_at: row.created_at,
+    promovido_para: null,
+    promovido_tipo: null,
   };
+}
+
+export async function loadTrilha(threadId: string) {
+  const [msgsRes, sedsRes] = await Promise.all([
+    listLocalMessages(threadId),
+    listLocalSediments(),
+  ]);
+
+  const messages = (msgsRes.messages as LocalMessageRow[]).map((m) => ({
+    id: m.id,
+    role: m.role,
+    content: m.content,
+    created_at: m.created_at,
+    derived_from: [],
+  }));
+
+  const sedimentos = (sedsRes.sediments as LocalSedimentoRow[])
+    .map((s) => toSedimentoRow(s, threadId))
+    .filter((s): s is SedimentoRow => s !== null);
+
+  return { messages, sedimentos };
 }
 
 // Sedimentos que cobrem uma dada mensagem (aparecem como "compactado a partir daqui").

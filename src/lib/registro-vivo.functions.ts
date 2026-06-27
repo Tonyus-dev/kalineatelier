@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  createLocalRegistro,
+  listLocalRegistros,
+  archiveLocalRegistro,
+} from "@/lib/local/local-api-client";
 
 const kinds = [
   "nota",
@@ -27,48 +31,54 @@ const ListSchema = z.object({
   since: z.string().datetime().optional(),
 });
 
+type RegistroRow = {
+  id: string;
+  kind: string;
+  content: string;
+  mood: number | null;
+  tags_json: string;
+  occurred_at: string | null;
+};
+
+function toClientShape(row: RegistroRow) {
+  return {
+    id: row.id,
+    kind: row.kind,
+    body: row.content,
+    mood: row.mood,
+    tags: JSON.parse(row.tags_json ?? "[]") as string[],
+    occurred_at: row.occurred_at ?? new Date().toISOString(),
+  };
+}
+
 export const createRegistro = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((data: z.infer<typeof CreateSchema>) => CreateSchema.parse(data))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { data: row, error } = await supabase
-      .from("registro_vivo")
-      .insert({
-        user_id: userId,
-        kind: data.kind,
-        body: data.body,
-        mood: data.mood ?? null,
-        tags: data.tags ?? [],
-        occurred_at: data.occurred_at ?? new Date().toISOString(),
-      })
-      .select("*")
-      .single();
-    if (error) throw new Error(error.message);
-    return row;
+  .handler(async ({ data }) => {
+    const { registro } = await createLocalRegistro({
+      kind: data.kind,
+      title: data.body.slice(0, 80),
+      content: data.body,
+      mood: data.mood ?? null,
+      tags: data.tags ?? [],
+      occurred_at: data.occurred_at,
+    });
+    return toClientShape(registro as RegistroRow);
   });
 
 export const listRegistros = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((data: z.infer<typeof ListSchema>) => ListSchema.parse(data))
-  .handler(async ({ data, context }) => {
-    let q = context.supabase
-      .from("registro_vivo")
-      .select("*")
-      .order("occurred_at", { ascending: false })
-      .limit(data.limit ?? 50);
-    if (data.kind) q = q.eq("kind", data.kind);
-    if (data.since) q = q.gte("occurred_at", data.since);
-    const { data: rows, error } = await q;
-    if (error) throw new Error(error.message);
-    return rows ?? [];
+  .handler(async ({ data }) => {
+    const { registros } = await listLocalRegistros({
+      kind: data.kind,
+      limit: data.limit ?? 50,
+      since: data.since,
+    });
+    return (registros as RegistroRow[]).map(toClientShape);
   });
 
 export const deleteRegistro = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((data: { id: string }) => z.object({ id: z.string().uuid() }).parse(data))
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("registro_vivo").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
+  .inputValidator((data: { id: string }) => z.object({ id: z.string() }).parse(data))
+  .handler(async ({ data }) => {
+    await archiveLocalRegistro(data.id);
     return { ok: true };
   });

@@ -113,12 +113,26 @@ export function sendLocalChatMessage(input: {
   );
 }
 
-export function listLocalRegistros() {
-  return localApiRequest<{ registros: unknown[] }>("/registro");
+export function listLocalRegistros(opts: { kind?: string; limit?: number; since?: string } = {}) {
+  const params = new URLSearchParams();
+  if (opts.kind) params.set("kind", opts.kind);
+  if (opts.limit) params.set("limit", String(opts.limit));
+  if (opts.since) params.set("since", opts.since);
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return localApiRequest<{ registros: unknown[] }>(`/registro${query}`);
 }
 
-export function listLocalMemories() {
-  return localApiRequest<{ memories: unknown[] }>("/memories");
+export function listLocalMemories(opts: { includeArchived?: boolean; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (opts.includeArchived) params.set("includeArchived", "true");
+  if (opts.limit) params.set("limit", String(opts.limit));
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return localApiRequest<{ memories: unknown[] }>(`/memories${query}`);
+}
+
+export function dueLocalMemorias(limit?: number) {
+  const query = limit ? `?limit=${limit}` : "";
+  return localApiRequest<{ memories: unknown[] }>(`/memories/due${query}`);
 }
 
 export function listLocalSediments(status?: string) {
@@ -131,6 +145,9 @@ export function createLocalRegistro(input: {
   title: string;
   content: string;
   source?: string;
+  mood?: number | null;
+  tags?: string[];
+  occurred_at?: string;
 }) {
   return localApiRequest<{ registro: unknown }>("/registro", {
     method: "POST",
@@ -142,7 +159,15 @@ export function archiveLocalRegistro(id: string) {
   return localApiRequest<{ ok: true }>(`/registro/${id}`, { method: "DELETE" });
 }
 
-export function createLocalMemoria(input: { title: string; content: string; tags?: string[] }) {
+export function createLocalMemoria(input: {
+  title: string;
+  content: string;
+  tags?: string[];
+  source?: string;
+  sourceRef?: string;
+  category?: string;
+  importance?: number;
+}) {
   return localApiRequest<{ memoria: unknown }>("/memories", {
     method: "POST",
     body: JSON.stringify(input),

@@ -11,6 +11,10 @@ export type MemoriaRow = {
   interval_days: number;
   due_at: string | null;
   review_count: number;
+  source: string | null;
+  source_ref: string | null;
+  category: string;
+  importance: number;
   created_at: string;
   updated_at: string;
   archived_at: string | null;
@@ -64,19 +68,32 @@ function nextSchedule(
 
 export function createMemoria(
   db: Database.Database,
-  input: { title: string; content: string; tags?: string[]; sourceSedimentoId?: string | null },
+  input: {
+    title: string;
+    content: string;
+    tags?: string[];
+    sourceSedimentoId?: string | null;
+    source?: string | null;
+    sourceRef?: string | null;
+    category?: string;
+    importance?: number;
+  },
 ): MemoriaRow {
   const id = newId();
   const now = nowIso();
   db.prepare(
     `INSERT INTO jardim_memorias
-       (id, title, content, tags_json, ease, interval_days, due_at, review_count, created_at, updated_at, archived_at, source_sedimento_id)
-     VALUES (@id, @title, @content, @tags_json, 2.5, 0, NULL, 0, @created_at, @updated_at, NULL, @source_sedimento_id)`,
+       (id, title, content, tags_json, ease, interval_days, due_at, review_count, source, source_ref, category, importance, created_at, updated_at, archived_at, source_sedimento_id)
+     VALUES (@id, @title, @content, @tags_json, 2.5, 0, NULL, 0, @source, @source_ref, @category, @importance, @created_at, @updated_at, NULL, @source_sedimento_id)`,
   ).run({
     id,
     title: input.title,
     content: input.content,
     tags_json: JSON.stringify(input.tags ?? []),
+    source: input.source ?? null,
+    source_ref: input.sourceRef ?? null,
+    category: input.category ?? "geral",
+    importance: input.importance ?? 2,
     created_at: now,
     updated_at: now,
     source_sedimento_id: input.sourceSedimentoId ?? null,
@@ -92,6 +109,16 @@ export function listMemorias(
   return db
     .prepare(`SELECT * FROM jardim_memorias ${where} ORDER BY created_at DESC LIMIT @limit`)
     .all({ limit: opts.limit ?? 100 }) as MemoriaRow[];
+}
+
+export function dueMemorias(db: Database.Database, opts: { limit?: number } = {}): MemoriaRow[] {
+  return db
+    .prepare(
+      `SELECT * FROM jardim_memorias
+       WHERE archived_at IS NULL AND due_at IS NOT NULL AND due_at <= @now
+       ORDER BY due_at ASC LIMIT @limit`,
+    )
+    .all({ now: nowIso(), limit: opts.limit ?? 20 }) as MemoriaRow[];
 }
 
 export function reviewMemoria(

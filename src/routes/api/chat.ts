@@ -379,10 +379,9 @@ export const Route = createFileRoute("/api/chat")({
                 }
               }
 
-              // Sedimentação 5→1: limitada por execução, isolada por usuário e
-              // aguardada aqui para não depender de background volátil do runtime.
-              const { sedimentarThreadCore } = await import("@/lib/sedimentar.functions");
-              await sedimentarThreadCore(supabaseAsUser, userId, body.threadId);
+              // Sedimentação 5→1 roda via local-server (motor determinístico
+              // único, sem cascata) — este endpoint Supabase-based ainda não
+              // foi religado ao local-server (ver Tarefa #9 da migração offline).
             } catch (err) {
               console.error("Chat persistence/sedimentation failed", err);
               // Não derrubar a resposta por falha de persistência
