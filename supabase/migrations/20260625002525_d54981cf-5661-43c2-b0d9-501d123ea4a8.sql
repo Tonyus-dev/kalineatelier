@@ -1,1 +1,0 @@
-ALTER TYPE public.chat_facet ADD VALUE IF NOT EXISTS 'kuanyin';
