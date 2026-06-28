@@ -50,6 +50,7 @@ function TrilhaPage() {
   }
   useEffect(() => {
     reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
 
   async function rodarAgora() {

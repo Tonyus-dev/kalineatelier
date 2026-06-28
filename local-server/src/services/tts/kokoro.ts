@@ -40,8 +40,7 @@ export type TtsStatus =
     };
 
 export function getTtsStatus(): TtsStatus {
-  const { enabled, engine, model, modelPath, voicesPath, defaultLang } =
-    TTS_CONFIG.kokoro;
+  const { enabled, engine, model, modelPath, voicesPath, defaultLang } = TTS_CONFIG.kokoro;
   const provider = TTS_CONFIG.provider;
   const experimentalVoice = "af_bella";
 
@@ -76,8 +75,7 @@ export function getTtsStatus(): TtsStatus {
     lang: defaultLang,
     offline: false,
     experimental: true,
-    message:
-      "kokoro-js experimental (fallback). Dora PT-BR offline requer kokoro-python.",
+    message: "kokoro-js experimental (fallback). Dora PT-BR offline requer kokoro-python.",
   };
 }
 

@@ -34,10 +34,7 @@ export async function registerModelRoutes(app: FastifyInstance): Promise<void> {
       fallbackModel: MODEL_CONFIG.ollama.models.visionFallback,
       warning: VISION_CONFIG.warning,
     };
-    const tts =
-      TTS_CONFIG.provider === "kokoro-python"
-        ? getKokoroPythonStatus()
-        : getTtsStatus();
+    const tts = TTS_CONFIG.provider === "kokoro-python" ? getKokoroPythonStatus() : getTtsStatus();
     return { ok: true, ...getModelStatus(), ...real, vision, tts };
   });
 

@@ -307,6 +307,7 @@ function SessaoDetalhe({ sessao: sessaoInicial, onBack }: { sessao: Sessao; onBa
   }
   useEffect(() => {
     void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessao.id]);
 
   // Re-enfileira segmentos que ficaram pending/failed com blob local disponível

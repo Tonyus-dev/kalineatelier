@@ -118,16 +118,11 @@ export function synthesizeWithKokoroPython(
     return Promise.reject(new KokoroPythonError("Texto vazio."));
   }
   if (trimmed.length > MAX_TEXT_CHARS) {
-    return Promise.reject(
-      new KokoroPythonError(`Texto excede ${MAX_TEXT_CHARS} caracteres.`),
-    );
+    return Promise.reject(new KokoroPythonError(`Texto excede ${MAX_TEXT_CHARS} caracteres.`));
   }
 
   const speed = opts.speed ?? 1.0;
-  const outFile = path.join(
-    os.tmpdir(),
-    `kaline-dora-${process.pid}-${Date.now()}.wav`,
-  );
+  const outFile = path.join(os.tmpdir(), `kaline-dora-${process.pid}-${Date.now()}.wav`);
 
   return new Promise<Buffer>((resolve, reject) => {
     const child = spawn(
@@ -159,11 +154,7 @@ export function synthesizeWithKokoroPython(
     const timer = setTimeout(() => {
       child.kill("SIGKILL");
       cleanup();
-      reject(
-        new KokoroPythonError(
-          `kokoro-python excedeu o timeout de ${cfg.timeoutMs}ms.`,
-        ),
-      );
+      reject(new KokoroPythonError(`kokoro-python excedeu o timeout de ${cfg.timeoutMs}ms.`));
     }, cfg.timeoutMs);
 
     function cleanup(): void {
@@ -196,9 +187,7 @@ export function synthesizeWithKokoroPython(
         resolve(buf);
       } catch (err) {
         cleanup();
-        reject(
-          new KokoroPythonError(`Falha ao ler WAV gerado: ${(err as Error).message}`),
-        );
+        reject(new KokoroPythonError(`Falha ao ler WAV gerado: ${(err as Error).message}`));
       }
     });
   });

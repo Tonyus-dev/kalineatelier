@@ -26,6 +26,7 @@ export type KuanyinActionBlock = {
 
 const FENCE_RE = /```kuanyin-action\s*\n([\s\S]*?)\n```/g;
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function extractActions(text: string): { clean: string; actions: KuanyinActionBlock[] } {
   const actions: KuanyinActionBlock[] = [];
   const clean = text
