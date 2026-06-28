@@ -92,8 +92,7 @@ export function useTTS() {
       } catch (err) {
         if (controller.signal.aborted) return;
 
-        const isNetworkError =
-          err instanceof TypeError && err.message.includes("fetch");
+        const isNetworkError = err instanceof TypeError && err.message.includes("fetch");
 
         const msg = isNetworkError
           ? "TTS local indisponível. Verifique se o local-server está rodando em http://127.0.0.1:64113."

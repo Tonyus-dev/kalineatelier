@@ -35,9 +35,7 @@ export async function registerTtsRoutes(app: FastifyInstance): Promise<void> {
     if (TTS_CONFIG.provider === "kokoro-python") {
       const status = getKokoroPythonStatus();
       if (status.status !== "available") {
-        return reply
-          .code(503)
-          .send({ ok: false, status: status.status, message: status.message });
+        return reply.code(503).send({ ok: false, status: status.status, message: status.message });
       }
       try {
         const wav = await synthesizeWithKokoroPython(text, { speed: body.speed });
@@ -45,12 +43,8 @@ export async function registerTtsRoutes(app: FastifyInstance): Promise<void> {
         reply.header("cache-control", "no-store");
         return reply.send(wav);
       } catch (err) {
-        const message =
-          err instanceof KokoroPythonError ? err.message : "Falha na síntese de voz.";
-        req.log.error(
-          { provider: "kokoro-python", success: false, error: message },
-          "tts.speak",
-        );
+        const message = err instanceof KokoroPythonError ? err.message : "Falha na síntese de voz.";
+        req.log.error({ provider: "kokoro-python", success: false, error: message }, "tts.speak");
         return reply.code(503).send({ ok: false, error: message });
       }
     }
