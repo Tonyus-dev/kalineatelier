@@ -4,11 +4,37 @@ A Kaline Offline roda com **provider mock por padrão**: nenhuma IA real é cons
 nenhum token é gasto, nenhuma rede externa é usada. Isso é intencional para que qualquer
 pessoa consiga baixar e testar sem custo e sem configuração.
 
+## Perfil offline leve recomendado
+
+Para máquinas modestas, a Kaline Offline usa:
+
+- Modelo principal: `qwen2.5:1.5b`
+- Modelo fallback: `llama3.2:1b`
+- Provider: Ollama
+- Transcrição: Whisper local
+- Voz: Dora PT-BR via kokoro-python
+- Memória: SQLite local
+
+Modelos opcionais para teste:
+
+- `qwen3.5:0.8b`
+- `qwen3.5:2b`
+
+Configuração correspondente no `local-server/.env`:
+
+```env
+KALINE_MODEL_PROVIDER=ollama
+KALINE_MODEL_PRIMARY=qwen2.5:1.5b
+KALINE_MODEL_FALLBACK=llama3.2:1b
+KALINE_MODEL_TIMEOUT_MS=180000
+```
+
 ## Pilha oficial local
 
 ```txt
-Llama 3.2 1B  = modelo principal textual da Kaline (geral, roteador, resumo, raciocínio)
-Qwen 2.5 1.5B = fallback textual
+Qwen 2.5 1.5B = modelo principal textual da Kaline (geral, resumo)
+Llama 3.2 1B  = fallback textual
+Llama 3.2 1B  = roteador/raciocínio leve
 Qwen 3.5 2B   = visão/foto principal
 Qwen 3.5 0.8B = fallback de visão/foto
 Whisper small = escuta/transcrição local

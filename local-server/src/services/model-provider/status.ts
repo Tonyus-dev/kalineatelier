@@ -26,6 +26,8 @@ export function getModelStatus(): ModelStatus {
     return {
       provider,
       configured: true,
+      primaryModel: MODEL_CONFIG.ollama.models.general,
+      fallbackModel: MODEL_CONFIG.ollama.models.textFallback,
       models: MODEL_CONFIG.ollama.models,
       fallbackToMock: MODEL_CONFIG.fallbackToMock,
       message: `Ollama selecionado em ${MODEL_CONFIG.ollama.baseUrl}. Verifique se o Ollama está rodando localmente.`,
