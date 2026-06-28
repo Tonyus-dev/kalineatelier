@@ -1,9 +1,11 @@
 /**
- * TTS Kokoro 82M local. `getTtsStatus()` relata configuração/disponibilidade de forma
- * honesta; `synthesizeSpeech()` sintetiza de verdade com a voz Dora (pt-BR) usando o
- * modelo instalado pelo usuário. A inferência é carregada via import dinâmico, então
- * este servidor compila mesmo sem a dependência/modelo presentes — nesse caso a
- * síntese falha com erro claro (KokoroError), nunca com voz fingida.
+ * TTS Kokoro 82M local — fallback experimental via kokoro-js (Node).
+ *
+ * A voz Dora PT-BR offline é sintetizada pelo provider `kokoro-python` (Python).
+ * Este módulo é mantido apenas como fallback experimental. NÃO configurar
+ * `pf_dora` para `kokoro-js` — essa voz não está disponível no pacote ONNX
+ * Community suportado pelo kokoro-js; use `af_bella` (ou outra voz suportada)
+ * para testes experimentais com o kokoro-js.
  */
 
 import fs from "node:fs";
@@ -26,6 +28,8 @@ export type TtsStatus =
       model: string;
       voice: string;
       lang: string;
+      offline: boolean;
+      experimental: true;
       message: string;
     }
   | {
@@ -36,16 +40,18 @@ export type TtsStatus =
     };
 
 export function getTtsStatus(): TtsStatus {
-  const { enabled, engine, model, modelPath, voicesPath, defaultVoice, defaultLang } =
+  const { enabled, engine, model, modelPath, voicesPath, defaultLang } =
     TTS_CONFIG.kokoro;
   const provider = TTS_CONFIG.provider;
+  const experimentalVoice = "af_bella";
 
   if (!enabled) {
     return {
       provider,
       status: "disabled",
       enabled: false,
-      message: "Kokoro desabilitado (KOKORO_ENABLED=false).",
+      message:
+        "kokoro-js desabilitado (KOKORO_ENABLED=false). Dora PT-BR offline usa kokoro-python.",
     };
   }
 
@@ -54,7 +60,9 @@ export function getTtsStatus(): TtsStatus {
       provider,
       status: "misconfigured",
       enabled: false,
-      message: "KOKORO_MODEL_PATH ou KOKORO_VOICES_PATH não encontrados.",
+      message:
+        "kokoro-js: KOKORO_MODEL_PATH ou KOKORO_VOICES_PATH não encontrados. " +
+        "Dora PT-BR offline requer kokoro-python.",
     };
   }
 
@@ -64,9 +72,12 @@ export function getTtsStatus(): TtsStatus {
     enabled: true,
     engine,
     model,
-    voice: defaultVoice,
+    voice: experimentalVoice,
     lang: defaultLang,
-    message: "Kokoro configurado.",
+    offline: false,
+    experimental: true,
+    message:
+      "kokoro-js experimental (fallback). Dora PT-BR offline requer kokoro-python.",
   };
 }
 
@@ -108,17 +119,20 @@ async function loadKokoro() {
 }
 
 /**
- * Sintetiza `text` em áudio WAV com a voz pedida (default `pf_dora` — Dora, pt-BR).
+ * Sintetiza `text` em áudio WAV com a voz pedida.
  * Lança KokoroError se o Kokoro não estiver disponível. Nunca devolve voz fingida.
+ *
+ * Experimental: Dora PT-BR offline requer `kokoro-python`.
  */
 export async function synthesizeSpeech(
   text: string,
   opts: { voice?: string; speed?: number } = {},
 ): Promise<Buffer> {
-  const { defaultVoice, defaultSpeed } = TTS_CONFIG.kokoro;
+  const { defaultSpeed } = TTS_CONFIG.kokoro;
+  const experimentalVoice = opts.voice || "af_bella";
   const tts = await loadKokoro();
   const audio = await tts.generate(text, {
-    voice: opts.voice || defaultVoice,
+    voice: experimentalVoice,
     speed: opts.speed ?? defaultSpeed,
   });
   const wav = audio.toWav();

@@ -9,6 +9,8 @@ import { MODEL_CONFIG, VISION_CONFIG } from "../config.js";
 import { getModelStatus, getRealModelStatus } from "../services/model-provider/status.js";
 import { ollamaChat, OllamaError } from "../services/model-provider/ollama.js";
 import { getTtsStatus } from "../services/tts/kokoro.js";
+import { getKokoroPythonStatus } from "../services/tts/kokoro-python.js";
+import { TTS_CONFIG } from "../config.js";
 
 const MAX_IMAGE_BASE64_CHARS = 8_000_000; // ~6 MB de imagem decodificada
 
@@ -32,7 +34,10 @@ export async function registerModelRoutes(app: FastifyInstance): Promise<void> {
       fallbackModel: MODEL_CONFIG.ollama.models.visionFallback,
       warning: VISION_CONFIG.warning,
     };
-    const tts = getTtsStatus();
+    const tts =
+      TTS_CONFIG.provider === "kokoro-python"
+        ? getKokoroPythonStatus()
+        : getTtsStatus();
     return { ok: true, ...getModelStatus(), ...real, vision, tts };
   });
 
