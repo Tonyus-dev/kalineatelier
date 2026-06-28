@@ -34,3 +34,6 @@ jobs:
 
       - name: Build
         run: bun run build
+
+      - name: Local server typecheck + build
+        run: cd local-server && npm install && npx tsc --noEmit && npm run build

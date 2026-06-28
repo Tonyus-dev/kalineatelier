@@ -34,6 +34,7 @@ import { registerPresencaRoutes } from "./routes/presenca.js";
 import { registerCamaraRoutes } from "./routes/camara.js";
 import { registerLivrosRoutes } from "./routes/livros.js";
 import { registerContextoExternoRoutes } from "./routes/contexto-externo.js";
+import { shutdownKokoroWorker } from "./services/tts/kokoro-python.js";
 
 runMigrations(getDb());
 
@@ -99,6 +100,7 @@ await registerContextoExternoRoutes(app);
 async function shutdown(signal: string): Promise<void> {
   app.log.info(`Recebido ${signal}. Encerrando a Kaline Local...`);
   try {
+    shutdownKokoroWorker();
     await app.close();
     process.exit(0);
   } catch (err) {

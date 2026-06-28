@@ -115,7 +115,10 @@ def main() -> None:
         except OSError as exc:
             fail(f"Falha ao remover saída existente: {exc}")
 
+    import numpy as np
+
     sample_rate = 24000
+    chunks = []
     total_frames = 0
     try:
         for result in generator:
@@ -134,7 +137,7 @@ def main() -> None:
             else:
                 data = audio
 
-            soundfile.write(str(wav_path), data, sample_rate)
+            chunks.append(data)
             total_frames += len(data)
     except Exception:
         if wav_path.exists():
@@ -143,6 +146,12 @@ def main() -> None:
             except OSError:
                 pass
         raise
+
+    if not chunks:
+        fail("KPipeline não produziu áudio.")
+
+    full_audio = np.concatenate(chunks) if len(chunks) > 1 else chunks[0]
+    soundfile.write(str(wav_path), full_audio, sample_rate)
 
     size_bytes = wav_path.stat().st_size
     duration_seconds = total_frames / sample_rate if sample_rate else 0.0
