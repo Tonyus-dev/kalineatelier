@@ -28,6 +28,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
+import { isOfflineMode } from "@/lib/local/runtime-mode";
 
 const groups = [
   {
@@ -73,6 +74,11 @@ export function AppSidebar() {
   }
 
   async function signOut() {
+    if (isOfflineMode()) {
+      // Offline: sem sessão para encerrar — volta ao /chat.
+      await navigate({ to: "/chat" });
+      return;
+    }
     await supabase.auth.signOut();
     await router.invalidate();
     await navigate({ to: "/auth" });
