@@ -13,6 +13,18 @@ A Kaline Offline roda localmente sem dependencia de servicos externos em runtime
 
 Documentacao completa: [docs/kaline-offline-linux-mint.md](docs/kaline-offline-linux-mint.md)
 
+## Segurança local
+
+A Kaline Offline roda em loopback (`127.0.0.1`) e não precisa de Supabase/OpenRouter/Fal/Hugging Face para o runtime local.
+
+A chave do Olhar de Kairós (`KALINE_BRIDGE_SHARED_KEY`) é sensível. Quando gerada automaticamente, ela é salva em arquivo local e não deve ser impressa em logs por padrão.
+
+Veja: `docs/bridge-secret.md`
+
+## Compatibilidade online herdada
+
+Algumas variáveis e dependências de Supabase/OpenRouter permanecem no repo para compatibilidade com o modo online/legado. Elas não são necessárias para usar a Kaline Offline local.
+
 ## Modelos recomendados
 
 - Principal: `qwen2.5:1.5b`

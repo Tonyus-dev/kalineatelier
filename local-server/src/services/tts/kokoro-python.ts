@@ -165,11 +165,9 @@ function startWorker(): Promise<boolean> {
     const scriptPath = getScriptPath();
     const baseDir = resolveHome(cfg.baseDir);
 
-    const child = spawn(
-      cfg.pythonBin,
-      [scriptPath, "--base-dir", baseDir],
-      { stdio: ["pipe", "pipe", "pipe"] },
-    );
+    const child = spawn(cfg.pythonBin, [scriptPath, "--base-dir", baseDir], {
+      stdio: ["pipe", "pipe", "pipe"],
+    });
 
     state.process = child;
     state.ready = false;
@@ -296,9 +294,7 @@ function processStdoutChunk(chunk: Buffer): void {
         if (pending) {
           clearTimeout(pending.timer);
           state.pending.delete(reqId);
-          pending.reject(
-            new KokoroPythonError((header.error as string) ?? "Erro desconhecido."),
-          );
+          pending.reject(new KokoroPythonError((header.error as string) ?? "Erro desconhecido."));
         }
         continue;
       }
@@ -318,7 +314,10 @@ function processStdoutChunk(chunk: Buffer): void {
 
       // If there are remaining bytes in this chunk after the header, process them as WAV
       if (offset < chunk.length) {
-        const wavPart = chunk.subarray(offset, Math.min(offset + state.remainingWavBytes, chunk.length));
+        const wavPart = chunk.subarray(
+          offset,
+          Math.min(offset + state.remainingWavBytes, chunk.length),
+        );
         state.wavChunks.push(wavPart);
         state.remainingWavBytes -= wavPart.length;
         offset += wavPart.length;
@@ -329,7 +328,10 @@ function processStdoutChunk(chunk: Buffer): void {
       }
     } else {
       // We're reading WAV bytes
-      const wavPart = chunk.subarray(offset, Math.min(offset + state.remainingWavBytes, chunk.length));
+      const wavPart = chunk.subarray(
+        offset,
+        Math.min(offset + state.remainingWavBytes, chunk.length),
+      );
       state.wavChunks.push(wavPart);
       state.remainingWavBytes -= wavPart.length;
       offset += wavPart.length;

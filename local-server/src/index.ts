@@ -38,6 +38,19 @@ import { shutdownKokoroWorker } from "./services/tts/kokoro-python.js";
 
 runMigrations(getDb());
 
+const printSecret = process.env.KALINE_BRIDGE_PRINT_SECRET_ON_START?.toLowerCase() === "true";
+
+if (printSecret) {
+  console.warn(
+    [
+      "",
+      "[Atenção] KALINE_BRIDGE_PRINT_SECRET_ON_START=true: a chave será",
+      "impressa no console e pode cair em logs.",
+      "",
+    ].join("\n"),
+  );
+}
+
 if (BRIDGE_CONFIG.bridgeSharedKeyWasGenerated) {
   console.log(
     [
@@ -46,24 +59,26 @@ if (BRIDGE_CONFIG.bridgeSharedKeyWasGenerated) {
       "  Olhar de Kairós — chave de pareamento gerada automaticamente",
       "================================================================",
       "",
-      "  Nenhuma KALINE_BRIDGE_SHARED_KEY foi configurada, então a Kaline",
-      "  Local gerou uma chave nova e a salvou em:",
+      "  Nenhuma KALINE_BRIDGE_SHARED_KEY foi configurada.",
+      "",
+      "  A Kaline Local gerou uma chave nova e a salvou em:",
       `    ${BRIDGE_CONFIG.bridgeSharedKeyPath}`,
       "",
-      "  Para o app online (Totalidade) conseguir trocar o Olhar de Kairós",
-      "  com este device, copie o valor abaixo e configure-o como",
-      "  KALINE_BRIDGE_SHARED_KEY no lado online (em produção, como secret",
-      "  real — ex.: `wrangler secret put KALINE_BRIDGE_SHARED_KEY`):",
+      "  Por segurança, o valor da chave não é impresso automaticamente no log.",
       "",
-      `    ${BRIDGE_CONFIG.bridgeSharedKey}`,
+      "  Para visualizar e copiar manualmente:",
+      `    cat ${BRIDGE_CONFIG.bridgeSharedKeyPath}`,
       "",
-      "  Essa chave fica salva e é reaproveitada nos próximos starts — não",
-      "  é preciso repetir este passo, a menos que reinstale a Kaline Local",
-      "  do zero ou queira parear com a mesma chave de outro device.",
+      "  Use essa chave apenas em ambiente confiável e configure o mesmo valor",
+      "  no lado online quando for parear a Totalidade com esta Kaline Local.",
       "================================================================",
       "",
     ].join("\n"),
   );
+
+  if (printSecret) {
+    console.log(`    ${BRIDGE_CONFIG.bridgeSharedKey}`);
+  }
 }
 
 const app = Fastify({ logger: true });
