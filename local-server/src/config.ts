@@ -99,6 +99,8 @@ export const MODEL_CONFIG = {
       coder: env("OLLAMA_MODEL_CODER", "qwen3.5:0.8b"),
     },
     requestTimeoutMs: Number(env("OLLAMA_REQUEST_TIMEOUT_MS", "120000")),
+    numPredict: Number(env("OLLAMA_NUM_PREDICT", "400")),
+    keepAlive: env("OLLAMA_KEEP_ALIVE", "30m"),
   },
 } as const;
 

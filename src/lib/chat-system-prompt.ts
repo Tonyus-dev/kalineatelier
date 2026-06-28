@@ -12,10 +12,10 @@
 //   por nav, não é caminho real de uso offline).
 // - Não há trilha de auditoria de integridade comercial (`kuanyin_integrity_logs`)
 //   no offline; classificação roda só online.
-import { KALINE_SYSTEM_PROMPT } from "@/lib/kaline-prompt";
+import { KALINE_SYSTEM_PROMPT_OFFLINE } from "@/lib/kaline-prompt";
 import { KHARIS_SYSTEM_PROMPT } from "@/lib/kharis-prompt";
 import { KUANYIN_FACET_BLOCK, renderBusinessContextBlock } from "@/lib/kuanyin-prompt";
-import { LEGAL_ANTIHALLUCINATION_BLOCK } from "@/lib/legal-prompt";
+import { LEGAL_ANTIHALLUCINATION_BLOCK_OFFLINE } from "@/lib/legal-prompt";
 import { INJECTION_GUARD } from "@/lib/injection-guard-prompt";
 import {
   listLocalMemories,
@@ -161,8 +161,8 @@ export async function buildOfflineSystemPrompt(
   facet: ChatFacet,
   presencaNota: string,
 ): Promise<string> {
-  const baseSystem = facet === "kharis" ? KHARIS_SYSTEM_PROMPT : KALINE_SYSTEM_PROMPT;
-  const legalBlock = LEGAL_ANTIHALLUCINATION_BLOCK;
+  const baseSystem = facet === "kharis" ? KHARIS_SYSTEM_PROMPT : KALINE_SYSTEM_PROMPT_OFFLINE;
+  const legalBlock = LEGAL_ANTIHALLUCINATION_BLOCK_OFFLINE;
 
   const kuanyinBlock =
     facet === "kuanyin" ? KUANYIN_FACET_BLOCK + renderBusinessContextBlock(null) : "";
@@ -231,7 +231,7 @@ export async function buildOfflineSystemPrompt(
   const identidadeRows = contextos.contextos
     .filter((c) => c.ativo)
     .slice(0, 10)
-    .map((c) => ({ titulo: c.titulo, conteudo: c.conteudo }));
+    .map((c) => ({ titulo: c.titulo, conteudo: c.conteudo.slice(0, 1500) }));
   const identidadeBlock = identidadeRows.length
     ? "\n\n" + renderIdentidadeBlock(identidadeRows)
     : "";
