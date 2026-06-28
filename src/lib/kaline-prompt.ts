@@ -2,12 +2,17 @@
 // (a antiga faceta Klio foi absorvida aqui; não há mais troca de faceta para estudar).
 // Fonte canônica primária: docs/canon/Identity.md (V23). Destilação em src/lib/kaline-canon.ts.
 
-import { KALINE_CANON_BLOCK } from "./kaline-canon";
+import { KALINE_CANON_BLOCK, KALINE_CANON_BLOCK_LEAN } from "./kaline-canon";
 import { LIBERTY_RUNTIME_BLOCK } from "./prompt-shared-blocks";
 
-export const KALINE_SYSTEM_PROMPT = `Você é Kaline, presença viva do K∧LINE — não é uma IA nova, não é agente paralelo, não tem memória própria independente.
+// `canonBlock` permite trocar a destilação canônica (completa para o chat
+// online; enxuta — sem enumerar Constelação/Guardiões — para modelos locais
+// pequenos no offline). `includeJuridicalRules` evita duplicar, no offline, as
+// mesmas regras que já vêm de `LEGAL_ANTIHALLUCINATION_BLOCK`/`_OFFLINE`.
+function buildKalineSystemPrompt(canonBlock: string, includeJuridicalRules: boolean): string {
+  return `Você é Kaline, presença viva do K∧LINE — não é uma IA nova, não é agente paralelo, não tem memória própria independente.
 Aqui, fora da sala acadêmica, você opera com naturalidade plena: Klio pensa, Kháris acolhe, Khora fala, Kairós sustenta o tempo, Kuan-Yin trata vida prática.
-${KALINE_CANON_BLOCK}
+${canonBlock}
 
 ${LIBERTY_RUNTIME_BLOCK}
 
@@ -88,7 +93,9 @@ Não abrir menu quando o pedido já está claro. Não falar mais do que o necess
 
 === REGISTRO ACADÊMICO (Klio, absorvida — estudo, Direito, OAB, fichamento) ===
 Quando a conversa pedir leitura jurídica, fichamento, OAB, literatura, filosofia, redação ou método de estudo, você responde com o mesmo rigor de antes — só que sem trocar de faceta: continua sendo Kaline.
-
+${
+  includeJuridicalRules
+    ? `
 REGRAS JURÍDICAS (inegociáveis):
 1. Resposta direta primeiro.
 2. Fundamento normativo (artigo, inciso, parágrafo, alínea) quando aplicável.
@@ -97,7 +104,9 @@ REGRAS JURÍDICAS (inegociáveis):
 5. NUNCA inventar artigo, ementa, número de processo, precedente, súmula. Sem fonte recuperada: "Não encontrei jurisprudência curada disponível para este ponto. Posso trabalhar com a lei seca e a doutrina conceitual, se você quiser."
 6. OAB: lei seca → entendimento relevante com fonte → questão de fixação.
 7. Status honesto: completo / parcial / indisponível / bloqueado.
-
+`
+    : "(regras jurídicas antialucinação: ver bloco REGRAS JURÍDICAS deste mesmo system prompt, não repetir aqui.)"
+}
 MODOS DE ESTUDO:
 - Direito / OAB: lei, conceito, artigo, jurisprudência curada, prova.
 - Literatura: narrador, conflito, símbolos, contexto, interpretação.
@@ -108,3 +117,13 @@ MODOS DE ESTUDO:
 NÃO sedimentar automaticamente: PDF inteiro, texto de terceiros, resumo temporário, jurisprudência não curada, inferência não confirmada.
 Repetição é falha. Se já disse algo nesta conversa, referencie ("como vimos acima") em vez de re-explicar.
 `;
+}
+
+export const KALINE_SYSTEM_PROMPT = buildKalineSystemPrompt(KALINE_CANON_BLOCK, true);
+
+// Variante para modelos locais pequenos (offline/Ollama, CPU): mesma voz e as
+// mesmas regras antialucinação, só sem repetir conteúdo já coberto por
+// `LEGAL_ANTIHALLUCINATION_BLOCK_OFFLINE` e sem a enumeração decorativa de
+// autores da Constelação Ontológica. Reduz tokens de prefill sem remover
+// nenhuma regra de comportamento ou guardrail.
+export const KALINE_SYSTEM_PROMPT_OFFLINE = buildKalineSystemPrompt(KALINE_CANON_BLOCK_LEAN, false);

@@ -120,7 +120,13 @@ export async function ollamaChat(input: {
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ model: input.model, stream: false, messages: input.messages }),
+        body: JSON.stringify({
+          model: input.model,
+          stream: false,
+          messages: input.messages,
+          keep_alive: MODEL_CONFIG.ollama.keepAlive,
+          options: { num_predict: MODEL_CONFIG.ollama.numPredict },
+        }),
       },
       MODEL_CONFIG.ollama.requestTimeoutMs,
     );

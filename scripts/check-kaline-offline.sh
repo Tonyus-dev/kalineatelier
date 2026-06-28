@@ -13,6 +13,11 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+LOCAL_SERVER="${KALINE_LOCAL_URL:-http://127.0.0.1:64113}"
+OLLAMA_URL="${OLLAMA_BASE_URL:-http://127.0.0.1:11434}"
+KOKORO_DIR="${KOKORO_PYTHON_BASE_DIR:-$HOME/Kaline/motores/kokoro-python}"
+CHAT_TIMEOUT_S="${KALINE_CHAT_TIMEOUT_S:-180}"
+
 OK_COUNT=0
 WARN_COUNT=0
 FAIL_COUNT=0
@@ -44,8 +49,10 @@ done
 echo ""
 
 echo "--- Portas locais ---"
-for port in 4173 64113 11434; do
-  if curl -sf --max-time 1 "http://127.0.0.1:${port}/" >/dev/null 2>&1; then
+for entry in "4173:/" "64113:/health" "11434:/"; do
+  port="${entry%%:*}"
+  path="${entry#*:}"
+  if curl -sf --max-time 1 "http://127.0.0.1:${port}${path}" >/dev/null 2>&1; then
     echo "  [OK]   porta $port em uso"
     OK_COUNT=$((OK_COUNT+1))
   elif [ "$port" = "11434" ]; then
@@ -59,10 +66,12 @@ done
 echo ""
 
 echo "--- Ollama ---"
+OLLAMA_UP=false
 if command -v ollama >/dev/null 2>&1; then
-  if curl -sf --max-time 2 "http://127.0.0.1:11434/api/tags" >/dev/null 2>&1; then
-    echo "  [OK]   Ollama responde em http://127.0.0.1:11434"
+  if curl -sf --max-time 2 "${OLLAMA_URL}/api/tags" >/dev/null 2>&1; then
+    echo "  [OK]   Ollama responde em ${OLLAMA_URL}"
     OK_COUNT=$((OK_COUNT+1))
+    OLLAMA_UP=true
     OLLAMA_LIST="$(ollama list 2>/dev/null || echo '')"
     if echo "$OLLAMA_LIST" | grep -q "qwen2.5:1.5b"; then
       echo "  [OK]   qwen2.5:1.5b instalado"
@@ -79,7 +88,7 @@ if command -v ollama >/dev/null 2>&1; then
       WARN_COUNT=$((WARN_COUNT+1))
     fi
   else
-    echo "  [WARN] Ollama instalado, mas nao responde em 127.0.0.1:11434"
+    echo "  [WARN] Ollama instalado, mas nao responde em ${OLLAMA_URL}"
     WARN_COUNT=$((WARN_COUNT+1))
   fi
 else
@@ -88,7 +97,6 @@ else
 fi
 echo ""
 echo "--- Kokoro/Dora ---"
-KOKORO_DIR="${HOME}/Kaline/motores/kokoro-python"
 KOKORO_FILES_OK=true
 for f in config.json kokoro-v1_0.pth voices/pf_dora.pt; do
   if [ -f "${KOKORO_DIR}/${f}" ]; then
@@ -126,7 +134,6 @@ if [ "${KOKORO_FILES_OK}" = "true" ]; then
 fi
 echo ""
 echo "--- TTS ---"
-LOCAL_SERVER="http://127.0.0.1:64113"
 if curl -sf --max-time 2 "${LOCAL_SERVER}/tts/status" >/dev/null 2>&1; then
   TTS_BODY="$(curl -s --max-time 3 "${LOCAL_SERVER}/tts/status")"
   echo "  [OK]   ${LOCAL_SERVER}/tts/status responde"
@@ -135,8 +142,7 @@ if curl -sf --max-time 2 "${LOCAL_SERVER}/tts/status" >/dev/null 2>&1; then
   HDR=$(mktemp) WAV=$(mktemp --suffix=.wav)
   CODE=$(curl -sS -D "$HDR" -o "$WAV" -w '%{http_code}' -H 'Content-Type: application/json' -d '{"text":"Ola. Eu sou a Kaline local.","speed":1}' "${LOCAL_SERVER}/tts/speak" || echo 000)
   if [ "$CODE" = "200" ]; then
-    CT=$(grep -i content-type "$HDR" | tr -d '
-' | awk '{print $2}')
+    CT=$(grep -i content-type "$HDR" | tr -d '\r\n' | awk '{print $2}')
     echo "  [OK]   /tts/speak content-type=${CT}"
     OK_COUNT=$((OK_COUNT+1))
     if file "$WAV" | grep -q 'WAVE audio'; then
@@ -165,9 +171,11 @@ else
 fi
 echo ""
 echo "--- local-server ---"
-if curl -sf --max-time 2 "${LOCAL_SERVER}" >/dev/null 2>&1; then
+LOCAL_SERVER_UP=false
+if curl -sf --max-time 2 "${LOCAL_SERVER}/health" >/dev/null 2>&1; then
   echo "  [OK]   local-server responde em ${LOCAL_SERVER}"
   OK_COUNT=$((OK_COUNT+1))
+  LOCAL_SERVER_UP=true
 else
   echo "  [WARN] local-server nao responde"
   WARN_COUNT=$((WARN_COUNT+1))
@@ -194,16 +202,24 @@ else
 fi
 echo ""
 echo "--- /chat ---"
-CHAT_CODE="$(curl -sS -o /dev/null -w "%{http_code}" --max-time 180 -X POST "${LOCAL_SERVER}/chat" -H "Content-Type: application/json" -d '{"message":"Responda apenas: ok","threadId":"check-offline"}' || echo 000)"
-if [ "$CHAT_CODE" = "200" ]; then
-  echo "  [OK]   POST /chat retornou HTTP 200"
-  OK_COUNT=$((OK_COUNT+1))
-elif [ "$CHAT_CODE" = "000" ]; then
-  echo "  [FAIL] POST /chat timeout/erro de conexao"
-  FAIL_COUNT=$((FAIL_COUNT+1))
+if [ "${LOCAL_SERVER_UP}" = "false" ]; then
+  echo "  [WARN] local-server fora do ar; pulando teste real de /chat (evitando espera de ${CHAT_TIMEOUT_S}s)"
+  WARN_COUNT=$((WARN_COUNT+1))
+elif [ "${OLLAMA_UP}" = "false" ]; then
+  echo "  [WARN] Ollama fora do ar; pulando teste real de /chat (evitando espera de ${CHAT_TIMEOUT_S}s)"
+  WARN_COUNT=$((WARN_COUNT+1))
 else
-  echo "  [FAIL] POST /chat retornou HTTP ${CHAT_CODE}"
-  FAIL_COUNT=$((FAIL_COUNT+1))
+  CHAT_CODE="$(curl -sS -o /dev/null -w "%{http_code}" --max-time "${CHAT_TIMEOUT_S}" -X POST "${LOCAL_SERVER}/chat" -H "Content-Type: application/json" -d '{"message":"Responda apenas: ok","threadId":"check-offline"}' || echo 000)"
+  if [ "$CHAT_CODE" = "200" ]; then
+    echo "  [OK]   POST /chat retornou HTTP 200"
+    OK_COUNT=$((OK_COUNT+1))
+  elif [ "$CHAT_CODE" = "000" ]; then
+    echo "  [FAIL] POST /chat timeout/erro de conexao"
+    FAIL_COUNT=$((FAIL_COUNT+1))
+  else
+    echo "  [FAIL] POST /chat retornou HTTP ${CHAT_CODE}"
+    FAIL_COUNT=$((FAIL_COUNT+1))
+  fi
 fi
 echo ""
 echo "--- Whisper ---"
