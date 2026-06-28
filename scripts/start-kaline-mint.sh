@@ -19,6 +19,12 @@ ROOT_DIR="$(kaline_find_repo_root)" || { kaline_err "Repositório da Kaline não
 cd "$ROOT_DIR"
 kaline_ensure_dirs
 
+# Garante .env consistente antes de iniciar
+if [ -f "scripts/setup-kaline-offline-env.sh" ]; then
+  kaline_log "Verificando ambiente offline (scripts/setup-kaline-offline-env.sh) ..."
+  bash scripts/setup-kaline-offline-env.sh || true
+fi
+
 OPEN_TARGET="main"
 for arg in "$@"; do
   case "$arg" in
@@ -147,5 +153,11 @@ case "$OPEN_TARGET" in
 esac
 
 kaline_log ""
-kaline_log "Kaline Offline disponível em: $APP_URL"
-kaline_log "local-server (API): http://127.0.0.1:64113"
+kaline_log "URLs da Kaline Offline:"
+kaline_log "  Frontend/PWA:  $APP_URL"
+kaline_log "  local-server:  http://127.0.0.1:64113"
+kaline_log "  Ollama:        http://127.0.0.1:11434"
+kaline_log ""
+kaline_log "Logs salvos em: $KALINE_LOG_DIR/"
+kaline_log "  local-server: $KALINE_LOG_DIR/local-server.log"
+kaline_log "  PWA:          $KALINE_LOG_DIR/pwa.log"
