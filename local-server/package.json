@@ -16,7 +16,7 @@
     "fastify": "^5.2.1",
     "zod": "^3.24.2"
   },
-  "//optionalDependencies": "kokoro-js é carregado dinamicamente em runtime pelo TTS (voz Dora). Opcional para o build/typecheck; necessário só na máquina onde a voz será sintetizada.",
+  "//optionalDependencies": "kokoro-js é carregado dinamicamente em runtime como fallback experimental (af_bora). Dora PT-BR offline requer kokoro-python (provider principal). Opcional para o build/typecheck.",
   "optionalDependencies": {
     "kokoro-js": "^1.2.0"
   },

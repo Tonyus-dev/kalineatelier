@@ -127,16 +127,25 @@ export const TRANSCRIPTION_CONFIG = {
 } as const;
 
 export const TTS_CONFIG = {
-  provider: env("TTS_PROVIDER", "kokoro"),
+  provider: env("TTS_PROVIDER", "kokoro-python"),
   kokoro: {
-    enabled: envBool("KOKORO_ENABLED", true),
+    enabled: envBool("KOKORO_ENABLED", false),
     engine: env("KOKORO_ENGINE", "onnx"),
     model: env("KOKORO_MODEL", "kokoro-82m"),
     modelPath: env("KOKORO_MODEL_PATH", ""),
     voicesPath: env("KOKORO_VOICES_PATH", ""),
-    defaultVoice: env("KOKORO_DEFAULT_VOICE", "pf_dora"),
+    defaultVoice: env("KOKORO_DEFAULT_VOICE", "af_bella"),
     defaultLang: env("KOKORO_DEFAULT_LANG", "pt-br"),
     defaultSpeed: Number(env("KOKORO_DEFAULT_SPEED", "1.0")),
+  },
+  kokoroPython: {
+    enabled: envBool("KOKORO_PYTHON_ENABLED", true),
+    pythonBin: env(
+      "KOKORO_PYTHON_BIN",
+      "/home/tonyus/Kaline/motores/kokoro-python-venv/bin/python",
+    ),
+    baseDir: env("KOKORO_PYTHON_BASE_DIR", "/home/tonyus/Kaline/motores/kokoro-python"),
+    timeoutMs: Number(env("KOKORO_PYTHON_TIMEOUT_MS", "120000")),
   },
 } as const;
 
