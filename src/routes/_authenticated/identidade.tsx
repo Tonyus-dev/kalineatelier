@@ -96,7 +96,8 @@ const RUNTIME: Fonte[] = [
   {
     caminho: "src/lib/chat-system-prompt.ts",
     tipo: "Runtime offline",
-    funcao: "Monta o system prompt offline com contexto local, reforço ontológico e identidade local.",
+    funcao:
+      "Monta o system prompt offline com contexto local, reforço ontológico e identidade local.",
   },
   {
     caminho: "src/routes/api/chat.ts",
