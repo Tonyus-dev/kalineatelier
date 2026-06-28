@@ -7,7 +7,7 @@
 # essa dependência, o HTML e os bootstraps são todos importados como texto
 # puro pelo Worker (src/index.ts) via a regra abaixo.
 
-name = "kaline-installer-worker"
+name = "kaline-instalador"
 main = "src/index.ts"
 compatibility_date = "2026-06-24"
 
