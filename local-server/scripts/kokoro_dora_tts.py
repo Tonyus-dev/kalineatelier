@@ -83,12 +83,6 @@ def main() -> None:
         fail(f"Pacote Python necessário não instalado: {exc}")
 
     try:
-        with config_path.open("r", encoding="utf-8") as f:
-            config = json.load(f)
-    except Exception as exc:
-        fail(f"Falha ao ler config.json: {exc}")
-
-    try:
         model = KModel(config=str(config_path), model=str(model_path)).to("cpu").eval()
     except Exception as exc:
         fail(f"Falha ao carregar modelo kokoro: {exc}")
@@ -97,7 +91,7 @@ def main() -> None:
         pipeline = KPipeline(
             lang_code="p",
             model=model,
-            repo_id=None,
+            repo_id="hexgrad/Kokoro-82M",
             device="cpu",
         )
     except Exception as exc:
@@ -111,27 +105,44 @@ def main() -> None:
     if not (0.1 <= speed <= 5.0):
         fail(f"Fora da faixa aceitável (0.1–5.0): {speed}")
 
-    generator = pipeline(text, voice="pf_dora", speed=speed)
+    generator = pipeline(text, voice=str(voice_path), speed=speed)
 
     wav_path = Path(args.out).resolve()
     wav_path.parent.mkdir(parents=True, exist_ok=True)
+    if wav_path.exists():
+        try:
+            wav_path.unlink()
+        except OSError as exc:
+            fail(f"Falha ao remover saída existente: {exc}")
 
     sample_rate = 24000
     total_frames = 0
-    with soundfile.SoundFile(
-        str(wav_path),
-        mode="w",
-        samplerate=sample_rate,
-        channels=1,
-        subtype="PCM_16",
-    ) as sf:
-        for audio in generator:
+    try:
+        for result in generator:
+            if hasattr(result, "audio"):
+                audio = result.audio
+            elif isinstance(result, (tuple, list)):
+                audio = result[2] if len(result) > 2 else None
+            else:
+                audio = None
+
+            if audio is None:
+                fail("KPipeline retornou resultado sem áudio.")
+
             if hasattr(audio, "numpy"):
                 data = audio.numpy()
             else:
                 data = audio
-            sf.write(data)
+
+            soundfile.write(str(wav_path), data, sample_rate)
             total_frames += len(data)
+    except Exception:
+        if wav_path.exists():
+            try:
+                wav_path.unlink()
+            except OSError:
+                pass
+        raise
 
     size_bytes = wav_path.stat().st_size
     duration_seconds = total_frames / sample_rate if sample_rate else 0.0
