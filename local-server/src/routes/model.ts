@@ -36,12 +36,7 @@ export async function registerModelRoutes(app: FastifyInstance): Promise<void> {
     };
     const tts = TTS_CONFIG.provider === "kokoro-python" ? getKokoroPythonStatus() : getTtsStatus();
     const modelStatus = getModelStatus();
-    const status =
-      "status" in real
-        ? real.status
-        : real.available
-          ? "available"
-          : "unreachable";
+    const status = "status" in real ? real.status : real.available ? "available" : "unreachable";
     const ollamaBaseUrl =
       typeof real === "object" && "baseUrl" in real ? real.baseUrl : MODEL_CONFIG.ollama.baseUrl;
     return {
