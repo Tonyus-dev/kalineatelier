@@ -17,6 +17,8 @@ import { KHARIS_SYSTEM_PROMPT } from "@/lib/kharis-prompt";
 import { KUANYIN_FACET_BLOCK, renderBusinessContextBlock } from "@/lib/kuanyin-prompt";
 import { LEGAL_ANTIHALLUCINATION_BLOCK } from "@/lib/legal-prompt";
 import { INJECTION_GUARD } from "@/lib/injection-guard-prompt";
+import { KALINE_OFFLINE_RUNTIME_BLOCK } from "@/lib/offline-identity-prompt";
+import { CHAT_IDENTITY_REINFORCEMENT_BLOCK } from "@/lib/chat-identity-reinforcement";
 import {
   listLocalMemories,
   listLocalRegistros,
@@ -157,6 +159,23 @@ function renderContextoVivoBlockLocal(ctx: {
   return linhas.join("\n");
 }
 
+function readMemoryDueAt(m: Record<string, unknown>): string | null {
+  const value = m.next_review_at ?? m.due_at;
+  return typeof value === "string" ? value : null;
+}
+
+function readRegistroBody(r: Record<string, unknown>): string {
+  return String(r.body ?? r.content ?? "").slice(0, 200);
+}
+
+function readSedimentLevel(s: Record<string, unknown>): string {
+  return String(s.nivel ?? s.level ?? "1");
+}
+
+function readSedimentSummary(s: Record<string, unknown>): string {
+  return String(s.resumo ?? s.hipotese ?? s.content ?? "").slice(0, 300);
+}
+
 export async function buildOfflineSystemPrompt(
   facet: ChatFacet,
   presencaNota: string,
@@ -183,15 +202,16 @@ export async function buildOfflineSystemPrompt(
       category: String(m.category ?? ""),
       importance: Number(m.importance ?? 0),
     }));
-  const jardimDue = (jardim.memories as Array<Record<string, unknown>>).filter(
-    (m) => typeof m.next_review_at === "string" && m.next_review_at <= new Date().toISOString(),
-  ).length;
+  const jardimDue = (jardim.memories as Array<Record<string, unknown>>).filter((m) => {
+    const dueAt = readMemoryDueAt(m);
+    return dueAt !== null && dueAt <= new Date().toISOString();
+  }).length;
 
   const registroRecente = (registros.registros as Array<Record<string, unknown>>)
     .slice(0, 5)
     .map((r) => ({
       kind: String(r.kind ?? ""),
-      body: String(r.body ?? "").slice(0, 200),
+      body: readRegistroBody(r),
       quando: String(r.occurred_at ?? r.created_at ?? ""),
     }));
 
@@ -213,8 +233,8 @@ export async function buildOfflineSystemPrompt(
     .filter((s) => s.status === "em_revisao" || s.status === "confirmado")
     .slice(0, 8)
     .map((s) => ({
-      nivel: String(s.nivel ?? ""),
-      resumo: String(s.resumo ?? s.hipotese ?? "").slice(0, 300),
+      nivel: readSedimentLevel(s),
+      resumo: readSedimentSummary(s),
       status: String(s.status ?? ""),
     }));
 
@@ -241,6 +261,8 @@ export async function buildOfflineSystemPrompt(
 
   return (
     baseSystem +
+    KALINE_OFFLINE_RUNTIME_BLOCK +
+    CHAT_IDENTITY_REINFORCEMENT_BLOCK +
     identidadeBlock +
     legalBlock +
     contextoBlock +
