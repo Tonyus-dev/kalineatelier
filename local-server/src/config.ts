@@ -65,7 +65,7 @@ export const SERVICE_INFO = {
 } as const;
 
 export const MODEL_CONFIG = {
-  provider: env("KALINE_MODEL_PROVIDER", "mock"),
+  provider: env("KALINE_MODEL_PROVIDER", "ollama"),
   fallbackToMock: env("KALINE_MODEL_FALLBACK_TO_MOCK", "false") === "true",
   timeoutMs: Number(env("KALINE_MODEL_TIMEOUT_MS", "180000")),
   maxInputChars: Number(env("KALINE_MODEL_MAX_INPUT_CHARS", "24000")),
@@ -199,7 +199,7 @@ export const BRIDGE_STATE = {
 
 export const CORS_ALLOWED_ORIGINS = env(
   "KALINE_CORS_ALLOWED_ORIGINS",
-  "http://localhost:5173,http://127.0.0.1:5173",
+  "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173",
 )
   .split(",")
   .map((origin) => origin.trim())

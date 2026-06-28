@@ -89,6 +89,7 @@ set_env_var "local-server/.env" "KOKORO_PYTHON_ENABLED" "true"
 set_env_var "local-server/.env" "KOKORO_PYTHON_BIN" "/home/tonyus/Kaline/motores/kokoro-python-venv/bin/python"
 set_env_var "local-server/.env" "KOKORO_PYTHON_BASE_DIR" "/home/tonyus/Kaline/motores/kokoro-python"
 set_env_var "local-server/.env" "KOKORO_PYTHON_TIMEOUT_MS" "120000"
+set_env_var "local-server/.env" "KALINE_CORS_ALLOWED_ORIGINS" "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173"
 
 # ----------
 # .env raiz (frontend)
@@ -123,6 +124,7 @@ printf '  TTS_PROVIDER=kokoro-python\n'
 printf '  KOKORO_PYTHON_ENABLED=true\n'
 printf '  KOKORO_BIN=.../kokoro-python-venv/bin/python\n'
 printf '  KOKORO_PYTHON_BASE_DIR=.../kokoro-python\n'
+printf '  KALINE_CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173\n'
 printf 'Variáveis verificadas em .env raiz:\n'
 printf '  VITE_KALINE_RUNTIME_MODE=offline\n'
 printf '  VITE_KALINE_LOCAL_SERVER_URL=http://127.0.0.1:64113\n'
