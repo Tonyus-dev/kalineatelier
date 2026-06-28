@@ -31,6 +31,11 @@ const CANONICOS: Fonte[] = [
     funcao: "Define a totalidade Kaline e as cinco facetas. Fonte primária.",
   },
   {
+    caminho: "ONTOLOGY.md",
+    tipo: "Mapa arquitetural",
+    funcao: "Mapeia conceitos, superfícies, camadas de verdade e regras de persistência.",
+  },
+  {
     caminho: "docs/kaline/LIBERTY.md",
     tipo: "Doc canônico",
     funcao: "Liberdade: pensar livre, executar com recibo (Klio).",
@@ -55,8 +60,18 @@ const RUNTIME: Fonte[] = [
   },
   {
     caminho: "src/lib/kaline-prompt.ts",
-    tipo: "Runtime",
-    funcao: "System prompt da presença geral. Naturalidade (Khora) incorporada em FORMATO/VOZ.",
+    tipo: "Runtime comum",
+    funcao: "System prompt da presença geral. Não contém identidade operacional offline.",
+  },
+  {
+    caminho: "src/lib/offline-identity-prompt.ts",
+    tipo: "Runtime offline",
+    funcao: "Identidade operacional exclusiva da Kaline Offline/local.",
+  },
+  {
+    caminho: "src/lib/chat-identity-reinforcement.ts",
+    tipo: "Runtime compartilhado",
+    funcao: "Bússola curta que amarra o chat a Identity.md e ONTOLOGY.md.",
   },
   {
     caminho: "src/lib/kharis-prompt.ts",
@@ -78,13 +93,23 @@ const RUNTIME: Fonte[] = [
     tipo: "Runtime (compartilhado)",
     funcao: "Blocos verbatim compartilhados (LIBERTY). Não é fonte de verdade.",
   },
+  {
+    caminho: "src/lib/chat-system-prompt.ts",
+    tipo: "Runtime offline",
+    funcao: "Monta o system prompt offline com contexto local, reforço ontológico e identidade local.",
+  },
+  {
+    caminho: "src/routes/api/chat.ts",
+    tipo: "Runtime online",
+    funcao: "Monta o system prompt online com reforço ontológico, sem identidade offline.",
+  },
 ];
 
 const RELATORIO: Fonte[] = [
   {
     caminho: "docs/identity-audit.md",
     tipo: "Relatório",
-    funcao: "Auditoria de saneamento identitário. Não é fonte runtime.",
+    funcao: "Auditoria de saneamento e reforço identitário. Não é fonte runtime.",
   },
 ];
 
