@@ -13,6 +13,7 @@ import {
 } from "@/lib/kuanyin-prompt";
 import { LEGAL_ANTIHALLUCINATION_BLOCK } from "@/lib/legal-prompt";
 import { INJECTION_GUARD } from "@/lib/injection-guard-prompt";
+import { CHAT_IDENTITY_REINFORCEMENT_BLOCK } from "@/lib/chat-identity-reinforcement";
 import { rateLimit } from "@/lib/rate-limit";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -263,6 +264,7 @@ export const Route = createFileRoute("/api/chat")({
 
         const system =
           baseSystem +
+          CHAT_IDENTITY_REINFORCEMENT_BLOCK +
           identidadeBlock +
           legalBlock +
           contextoBlock +
