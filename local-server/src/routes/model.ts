@@ -35,7 +35,21 @@ export async function registerModelRoutes(app: FastifyInstance): Promise<void> {
       warning: VISION_CONFIG.warning,
     };
     const tts = TTS_CONFIG.provider === "kokoro-python" ? getKokoroPythonStatus() : getTtsStatus();
-    return { ok: true, ...getModelStatus(), ...real, vision, tts };
+    const modelStatus = getModelStatus();
+    const status = "status" in real ? real.status : real.available ? "available" : "unreachable";
+    const ollamaBaseUrl =
+      typeof real === "object" && "baseUrl" in real ? real.baseUrl : MODEL_CONFIG.ollama.baseUrl;
+    return {
+      ok: true,
+      ...modelStatus,
+      provider: modelStatus.provider,
+      primaryModel: modelStatus.primaryModel ?? MODEL_CONFIG.ollama.models.general,
+      fallbackModel: modelStatus.fallbackModel ?? MODEL_CONFIG.ollama.models.textFallback,
+      status,
+      ollamaBaseUrl,
+      vision,
+      tts,
+    };
   });
 
   app.post("/model/vision", async (req, reply) => {

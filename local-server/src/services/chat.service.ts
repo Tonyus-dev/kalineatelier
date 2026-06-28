@@ -132,7 +132,9 @@ async function generateAssistantReply(
       messages: [
         {
           role: "system",
-          content: systemPrompt || "Você é Kaline Offline, assistente local e privada.",
+          content:
+            systemPrompt ||
+            "Você é Kaline Offline, assistente local e privada. Você roda neste computador via local-server da Kaline, com modelo de linguagem via Ollama, transcrição via Whisper local e voz via kokoro-python (Dora PT-BR). Responda em português brasileiro, com clareza e objetividade. Não diga que é apenas um modelo genérico. Não invente capacidades: se algo ainda não estiver integrado no app local, diga que ainda não está integrado. Não mencione Supabase, Cloudflare, OpenRouter, Fal ou Hugging Face para funcionar no modo offline.",
         },
         { role: "user", content: userMessage },
       ],

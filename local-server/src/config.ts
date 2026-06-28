@@ -67,8 +67,10 @@ export const SERVICE_INFO = {
 export const MODEL_CONFIG = {
   provider: env("KALINE_MODEL_PROVIDER", "mock"),
   fallbackToMock: env("KALINE_MODEL_FALLBACK_TO_MOCK", "false") === "true",
-  timeoutMs: Number(env("KALINE_MODEL_TIMEOUT_MS", "60000")),
+  timeoutMs: Number(env("KALINE_MODEL_TIMEOUT_MS", "180000")),
   maxInputChars: Number(env("KALINE_MODEL_MAX_INPUT_CHARS", "24000")),
+  primary: env("KALINE_MODEL_PRIMARY", "qwen2.5:1.5b"),
+  fallback: env("KALINE_MODEL_FALLBACK", "llama3.2:1b"),
   models: {
     general: env("KALINE_MODEL_GENERAL", "qwen2.5:1.5b"),
     coder: env("KALINE_MODEL_CODER", "qwen2.5-coder:1.5b"),
